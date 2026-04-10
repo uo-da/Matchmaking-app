@@ -272,6 +272,22 @@ button.superlike {
   font-size: 0.8rem;
 }
 
+.badge--incoming {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.deck-card__badge {
+  display: inline-flex;
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: #f0f9ff;
+  color: #0369a1;
+  font-weight: 700;
+}
+
 .empty-state {
   padding: 24px;
   background: #fff;

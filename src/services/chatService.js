@@ -5,6 +5,31 @@ const chatService = {
     return [userId, matchId].sort().join('-');
   },
 
+  async seedSampleMessages() {
+    const matchKey = this.getMatchKey('user-1', 'user-2');
+    const storageKey = CHAT_PREFIX + matchKey;
+    if (window.localStorage.getItem(storageKey)) {
+      return;
+    }
+    const messages = [
+      {
+        senderId: 'user-1',
+        receiverId: 'user-2',
+        text: 'こんにちは！プロジェクトの話をしてみませんか？',
+        timestamp: 1710000000000,
+        matchKey
+      },
+      {
+        senderId: 'user-2',
+        receiverId: 'user-1',
+        text: 'いいですね。どんなスタックで進めていますか？',
+        timestamp: 1710000005000,
+        matchKey
+      }
+    ];
+    window.localStorage.setItem(storageKey, JSON.stringify(messages));
+  },
+
   async getMessages(userId, matchId) {
     const key = CHAT_PREFIX + this.getMatchKey(userId, matchId);
     try {

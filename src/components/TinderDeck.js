@@ -8,6 +8,9 @@ function TinderDeck({ currentUser, users, filter, onFilterChange, onLike, onSupe
 
   const filteredUsers = useMemo(() => users, [users]);
   const currentUserCard = filteredUsers[currentIndex] || null;
+  const currentCardLikedYou = currentUserCard
+    ? currentUserCard.likedUserIds.includes(currentUser.id) || currentUserCard.superLikedUserIds.includes(currentUser.id)
+    : false;
 
   const handleNext = () => {
     setCurrentIndex((value) => Math.min(value + 1, filteredUsers.length));
@@ -62,6 +65,7 @@ function TinderDeck({ currentUser, users, filter, onFilterChange, onLike, onSupe
             />
             <div className="deck-card__info">
               <h3 className="deck-card__name">{currentUserCard.displayName}, {currentUserCard.age}</h3>
+              {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
               <p className="deck-card__detail">{currentUserCard.experienceYears}年の経験 / {currentUserCard.hobbies}</p>
             </div>
           </div>

@@ -12,9 +12,9 @@ const sampleUsers = [
     experienceYears: 5,
     stackTags: ['React', 'Node.js', 'TypeScript'],
     hobbies: '読書, カフェ巡り',
-    likedUserIds: [],
+    likedUserIds: ['user-2'],
     superLikedUserIds: [],
-    matches: []
+    matches: ['user-2']
   },
   {
     id: 'user-2',
@@ -26,9 +26,9 @@ const sampleUsers = [
     experienceYears: 8,
     stackTags: ['AWS', 'Docker', 'Kubernetes'],
     hobbies: 'キャンプ, 写真',
-    likedUserIds: [],
+    likedUserIds: ['user-1'],
     superLikedUserIds: [],
-    matches: []
+    matches: ['user-1']
   },
   {
     id: 'user-3',
@@ -54,7 +54,7 @@ const sampleUsers = [
     experienceYears: 7,
     stackTags: ['Go', 'Kubernetes', 'Terraform'],
     hobbies: '登山, 写真',
-    likedUserIds: [],
+    likedUserIds: ['user-1'],
     superLikedUserIds: [],
     matches: []
   },
@@ -69,7 +69,7 @@ const sampleUsers = [
     stackTags: ['Figma', 'React', 'CSS'],
     hobbies: 'カフェ, イラスト',
     likedUserIds: [],
-    superLikedUserIds: [],
+    superLikedUserIds: ['user-1'],
     matches: []
   },
   {

@@ -41,6 +41,7 @@ function UserList({ currentUser, users, filter, onFilterChange, onLike, onSuperL
         displayedUsers.map((user) => {
           const isLiked = currentUser.likedUserIds.includes(user.id);
           const isMatched = currentUser.matches.includes(user.id);
+          const incomingLike = user.likedUserIds.includes(currentUser.id) || user.superLikedUserIds.includes(currentUser.id);
           return (
             <div key={user.id} className="card user-card">
               <div>
@@ -60,6 +61,7 @@ function UserList({ currentUser, users, filter, onFilterChange, onLike, onSuperL
               <div className="field">
                 {isMatched && <span className="badge">マッチ済み</span>}
                 {isLiked && !isMatched && <span className="badge">いいね済み</span>}
+                {incomingLike && !isMatched && <span className="badge badge--incoming">あなたにいいね</span>}
               </div>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button type="button" className="primary-button" onClick={() => onLike(user.id)}>

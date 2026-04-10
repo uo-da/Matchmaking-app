@@ -19,6 +19,7 @@ function App() {
 
   useEffect(() => {
     storageService.seedSampleData();
+    chatService.seedSampleMessages();
     const saved = authService.getCurrentSession();
     setCurrentUser(saved);
     setAllUsers(storageService.getUsers());
