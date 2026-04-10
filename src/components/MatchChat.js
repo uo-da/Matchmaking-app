@@ -18,9 +18,10 @@ function MatchChat({ matchId, currentUser, onSend }) {
     fetchMessages();
 
     const channel = chatService.subscribe((message) => {
-      if (message.matchKey === chatService.getMatchKey(currentUser.id, matchId)) {
-        setMessages((prev) => [...prev, message]);
+      if (message.matchKey !== chatService.getMatchKey(currentUser.id, matchId)) {
+        return;
       }
+      setMessages((prev) => (prev.some((item) => item.id === message.id) ? prev : [...prev, message]));
     });
     return () => channel.unsubscribe();
   }, [currentUser.id, matchId]);
@@ -30,10 +31,11 @@ function MatchChat({ matchId, currentUser, onSend }) {
     if (!text.trim()) {
       return;
     }
-    await onSend(matchId, text.trim());
+    const message = await onSend(matchId, text.trim());
     setText('');
-    const loaded = await chatService.getMessages(currentUser.id, matchId);
-    setMessages(loaded);
+    if (message && !messages.some((item) => item.id === message.id)) {
+      setMessages((prev) => [...prev, message]);
+    }
   };
 
   return (

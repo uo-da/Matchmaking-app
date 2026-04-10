@@ -45,6 +45,7 @@ const chatService = {
     const key = CHAT_PREFIX + matchKey;
     const messages = await this.getMessages(senderId, receiverId);
     const message = {
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
       senderId,
       receiverId,
       text,

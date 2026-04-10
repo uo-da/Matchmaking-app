@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import AgeVerification from './components/AgeVerification';
 import LoginPage from './components/LoginPage';
 import ProfileEditor from './components/ProfileEditor';
+import SettingsPanel from './components/SettingsPanel';
 import TinderDeck from './components/TinderDeck';
 import MatchChat from './components/MatchChat';
 import authService from './services/authService';
@@ -16,6 +17,7 @@ function App() {
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const [refreshToggle, setRefreshToggle] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
+  const [matchModal, setMatchModal] = useState(null);
 
   useEffect(() => {
     storageService.seedSampleData();
@@ -71,6 +73,12 @@ function App() {
     const updated = storageService.saveUserReaction(currentUser.id, targetId, isSuperLike);
     setCurrentUser(storageService.getUserById(updated.id));
     setRefreshToggle((value) => !value);
+    
+    // マッチ成立処理
+    const targetUser = storageService.getUserById(targetId);
+    if (targetUser && targetUser.likedUserIds.includes(currentUser.id)) {
+      setMatchModal(targetUser);
+    }
   };
 
   const handleSelectMatch = (matchId) => {
@@ -80,10 +88,11 @@ function App() {
 
   const handleSendMessage = async (matchId, text) => {
     if (!currentUser) {
-      return;
+      return null;
     }
-    await chatService.sendMessage(currentUser.id, matchId, text);
+    const message = await chatService.sendMessage(currentUser.id, matchId, text);
     setRefreshToggle((value) => !value);
+    return message;
   };
 
   if (!currentUser) {
@@ -97,35 +106,27 @@ function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div>
-          <h1>エンジニア向けマッチング</h1>
+        <div className="header-brand">
+          <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
           <p>{currentUser.displayName} さん、ようこそ</p>
         </div>
-        <button type="button" onClick={handleLogout} className="secondary-button">
-          ログアウト
-        </button>
+        <div className="header-actions">
+          <button type="button" className="icon-button" aria-label="検索">🔍</button>
+          <button type="button" className="icon-button" aria-label="通知">🔔</button>
+          <button type="button" className="icon-button" aria-label="プロフィール">👤</button>
+          <button type="button" onClick={handleLogout} className="secondary-button">
+            ログアウト
+          </button>
+        </div>
       </header>
-      <nav className="app-nav">
-        <button type="button" className={selectedTab === 'users' ? 'active' : ''} onClick={() => setSelectedTab('users')}>
-          カード
-        </button>
-        <button type="button" className={selectedTab === 'profile' ? 'active' : ''} onClick={() => setSelectedTab('profile')}>
-          プロフィール
-        </button>
-        <button type="button" className={selectedTab === 'matches' ? 'active' : ''} onClick={() => setSelectedTab('matches')}>
-          マッチング ({allMatches.length})
-        </button>
-      </nav>
       <main className="app-main">
         {selectedTab === 'profile' && <ProfileEditor user={currentUser} onSave={handleProfileSave} />}
+        {selectedTab === 'settings' && <SettingsPanel filter={filter} onFilterChange={setFilter} />}
         {selectedTab === 'users' && (
           <TinderDeck
             currentUser={currentUser}
             users={filteredUsers}
-            filter={filter}
-            onFilterChange={setFilter}
             onLike={handleLike}
-            onSuperLike={(targetId) => handleLike(targetId, true)}
           />
         )}
         {selectedTab === 'matches' && (
@@ -154,6 +155,53 @@ function App() {
           <MatchChat matchId={selectedMatchId} currentUser={currentUser} onSend={handleSendMessage} />
         )}
       </main>
+      {matchModal && (
+        <div className="modal-overlay" onClick={() => setMatchModal(null)}>
+          <div className="match-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="match-modal__hearts">💗</div>
+            <h2 className="match-modal__title">It's a Match!</h2>
+            <div className="match-modal__photos">
+              <img
+                className="match-modal__photo"
+                src={`https://github.com/${currentUser.githubUsername}.png?size=200`}
+                alt={currentUser.displayName}
+                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/200'; }}
+              />
+              <div className="match-modal__divider" />
+              <img
+                className="match-modal__photo"
+                src={`https://github.com/${matchModal.githubUsername}.png?size=200`}
+                alt={matchModal.displayName}
+                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/200'; }}
+              />
+            </div>
+            <p className="match-modal__subtitle">{matchModal.displayName} さんとマッチングしました！</p>
+            <button type="button" className="primary-button" onClick={() => {
+              setMatchModal(null);
+              handleSelectMatch(matchModal.id);
+            }}>
+              メッセージを送る
+            </button>
+            <button type="button" className="secondary-button" onClick={() => setMatchModal(null)}>
+              後で
+            </button>
+          </div>
+        </div>
+      )}
+      <nav className="app-nav">
+        <button type="button" className={selectedTab === 'users' ? 'active' : ''} onClick={() => setSelectedTab('users')}>
+          カード
+        </button>
+        <button type="button" className={selectedTab === 'matches' ? 'active' : ''} onClick={() => setSelectedTab('matches')}>
+          マッチ
+        </button>
+        <button type="button" className={selectedTab === 'profile' ? 'active' : ''} onClick={() => setSelectedTab('profile')}>
+          プロフィール
+        </button>
+        <button type="button" className={selectedTab === 'settings' ? 'active' : ''} onClick={() => setSelectedTab('settings')}>
+          設定
+        </button>
+      </nav>
     </div>
   );
 }

@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 /**
- * @param {{ currentUser: Object, users: Object[], filter: Object, onFilterChange: Function, onLike: Function, onSuperLike: Function }} props
+ * @param {{ currentUser: Object, users: Object[], onLike: Function, onSuperLike: Function }} props
  */
-function TinderDeck({ currentUser, users, filter, onFilterChange, onLike, onSuperLike }) {
+function TinderDeck({ currentUser, users, onLike, onSuperLike }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
 
   const filteredUsers = useMemo(() => users, [users]);
   const currentUserCard = filteredUsers[currentIndex] || null;
@@ -12,11 +13,18 @@ function TinderDeck({ currentUser, users, filter, onFilterChange, onLike, onSupe
     ? currentUserCard.likedUserIds.includes(currentUser.id) || currentUserCard.superLikedUserIds.includes(currentUser.id)
     : false;
 
+  useEffect(() => {
+    if (currentIndex >= filteredUsers.length) {
+      setCurrentIndex(Math.max(filteredUsers.length - 1, 0));
+    }
+  }, [filteredUsers.length, currentIndex]);
+
   const handleNext = () => {
     setCurrentIndex((value) => Math.min(value + 1, filteredUsers.length));
+    setDrag({ active: false, startX: 0, offsetX: 0 });
   };
 
-  const handleAction = (targetId, isSuperLike = false) => {
+  const handleSwipeAction = (targetId, isSuperLike = false) => {
     if (!targetId) {
       return;
     }
@@ -24,73 +32,95 @@ function TinderDeck({ currentUser, users, filter, onFilterChange, onLike, onSupe
     handleNext();
   };
 
-  const handleFilterChange = (name, value) => {
-    onFilterChange({ ...filter, [name]: value });
-    setCurrentIndex(0);
+  const onPointerDown = (event) => {
+    setDrag({ active: true, startX: event.clientX, offsetX: 0 });
+    event.currentTarget.setPointerCapture(event.pointerId);
   };
+
+  const onPointerMove = (event) => {
+    if (!drag.active) {
+      return;
+    }
+    setDrag((prev) => ({ ...prev, offsetX: event.clientX - prev.startX }));
+  };
+
+  const onPointerUp = () => {
+    if (!drag.active || !currentUserCard) {
+      setDrag({ active: false, startX: 0, offsetX: 0 });
+      return;
+    }
+
+    const threshold = 80;
+    if (drag.offsetX > threshold) {
+      handleSwipeAction(currentUserCard.id);
+    } else if (drag.offsetX < -threshold) {
+      handleNext();
+    } else {
+      setDrag({ active: false, startX: 0, offsetX: 0 });
+    }
+  };
+
+  const cardStyle = {
+    transform: `translateX(${drag.offsetX}px) rotate(${drag.offsetX / 20}deg)`,
+    transition: drag.active ? 'none' : 'transform 180ms ease',
+  };
+
+  const swipeLabel = drag.offsetX > 30 ? 'LIKE' : drag.offsetX < -30 ? 'NOPE' : null;
+  const swipeClass = drag.offsetX > 0 ? 'deck-card__label deck-card__label--like' : 'deck-card__label deck-card__label--nope';
 
   return (
     <div className="deck-shell">
-      <div className="card">
-        <h2>候補カード</h2>
-        <div className="field">
-          <label htmlFor="stackTag">技術タグ</label>
-          <input
-            id="stackTag"
-            value={filter.stackTag}
-            onChange={(event) => handleFilterChange('stackTag', event.target.value)}
-            placeholder="React, Node.js, Python"
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="minYears">最小経験年数</label>
-          <input
-            id="minYears"
-            type="number"
-            value={filter.minYears}
-            onChange={(event) => handleFilterChange('minYears', Number(event.target.value))}
-          />
-        </div>
-      </div>
       {currentUserCard ? (
-        <div className="deck-card">
-          <div className="deck-card__hero">
-            <img
-              className="deck-card__photo"
-              src={`https://github.com/${currentUserCard.githubUsername}.png?size=320`}
-              alt={`${currentUserCard.displayName} の写真`}
-              onError={(event) => {
-                event.currentTarget.src = 'https://via.placeholder.com/320?text=No+Image';
-              }}
-            />
+        <>
+          <div
+            className="deck-card"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            style={cardStyle}
+          >
+            <div className="deck-card__hero">
+              {swipeLabel && <div className={swipeClass}>{swipeLabel}</div>}
+              <img
+                className="deck-card__photo"
+                src={`https://github.com/${currentUserCard.githubUsername}.png?size=320`}
+                alt={`${currentUserCard.displayName} の写真`}
+                onError={(event) => {
+                  event.currentTarget.src = 'https://via.placeholder.com/320?text=No+Image';
+                }}
+              />
+              <div className="deck-card__hero-overlay" />
+            </div>
             <div className="deck-card__info">
               <h3 className="deck-card__name">{currentUserCard.displayName}, {currentUserCard.age}</h3>
               {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
               <p className="deck-card__detail">{currentUserCard.experienceYears}年の経験 / {currentUserCard.hobbies}</p>
+              <div className="deck-card__tags">
+                {currentUserCard.stackTags.map((tag) => (
+                  <span key={tag} className="deck-card__tag">{tag}</span>
+                ))}
+              </div>
+              <p className="deck-card__bio">{currentUserCard.bio}</p>
+              <div className="deck-card__status">残り {filteredUsers.length - currentIndex - 1} 人</div>
+              <div className="deck-card__hint">左にスワイプでNOPE、右にスワイプでLIKE</div>
             </div>
           </div>
-          <div className="deck-card__tags">
-            {currentUserCard.stackTags.map((tag) => (
-              <span key={tag} className="deck-card__tag">{tag}</span>
-            ))}
-          </div>
-          <p className="deck-card__bio">{currentUserCard.bio}</p>
           <div className="deck-actions">
-            <button type="button" className="secondary-button" onClick={handleNext}>
-              パス
+            <button type="button" className="deck-action-btn deck-action-btn--nope" title="NOPE" onClick={handleNext}>
+              ✕
             </button>
-            <button type="button" className="small-button superlike" onClick={() => handleAction(currentUserCard.id, true)}>
-              スーパーライク
+            <button type="button" className="deck-action-btn deck-action-btn--superlike" title="スーパーライク" onClick={() => handleSwipeAction(currentUserCard.id, true)}>
+              ★
             </button>
-            <button type="button" className="primary-button" onClick={() => handleAction(currentUserCard.id)}>
-              いいね
+            <button type="button" className="deck-action-btn deck-action-btn--like" title="LIKE" onClick={() => handleSwipeAction(currentUserCard.id)}>
+              ♥
             </button>
           </div>
-          <div className="deck-card__status">残り {filteredUsers.length - currentIndex - 1} 人</div>
-        </div>
+        </>
       ) : (
         <div className="empty-state">
-          条件に合うカードはもうありません。フィルタを調整してみましょう。
+          条件に合うカードはもうありません。設定を調整してみましょう。
         </div>
       )}
     </div>
