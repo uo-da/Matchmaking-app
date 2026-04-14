@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 /**
- * @param {{ currentUser: Object, users: Object[], onLike: Function, onSuperLike: Function }} props
+ * @param {{ currentUser: Object, users: Object[], onLike: Function, onBoost: Function }} props
  */
-function TinderDeck({ currentUser, users, onLike, onSuperLike }) {
+function TinderDeck({ currentUser, users, onLike, onBoost }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
+  const [history, setHistory] = useState([]);
 
   const filteredUsers = useMemo(() => users, [users]);
   const currentUserCard = filteredUsers[currentIndex] || null;
@@ -20,6 +21,9 @@ function TinderDeck({ currentUser, users, onLike, onSuperLike }) {
   }, [filteredUsers.length, currentIndex]);
 
   const handleNext = () => {
+    if (currentUserCard) {
+      setHistory((prev) => [...prev, currentIndex]);
+    }
     setCurrentIndex((value) => Math.min(value + 1, filteredUsers.length));
     setDrag({ active: false, startX: 0, offsetX: 0 });
   };
@@ -30,6 +34,22 @@ function TinderDeck({ currentUser, users, onLike, onSuperLike }) {
     }
     onLike(targetId, isSuperLike);
     handleNext();
+  };
+
+  const handleRewind = () => {
+    if (history.length === 0) {
+      return;
+    }
+    const previousIndex = history[history.length - 1];
+    setHistory((prev) => prev.slice(0, -1));
+    setCurrentIndex(previousIndex);
+    setDrag({ active: false, startX: 0, offsetX: 0 });
+  };
+
+  const handleBoost = () => {
+    if (onBoost) {
+      onBoost();
+    }
   };
 
   const onPointerDown = (event) => {
@@ -107,6 +127,9 @@ function TinderDeck({ currentUser, users, onLike, onSuperLike }) {
             </div>
           </div>
           <div className="deck-actions">
+            <button type="button" className="deck-action-btn deck-action-btn--rewind" title="やり直し" onClick={handleRewind}>
+              ⟲
+            </button>
             <button type="button" className="deck-action-btn deck-action-btn--nope" title="NOPE" onClick={handleNext}>
               ✕
             </button>
@@ -115,6 +138,9 @@ function TinderDeck({ currentUser, users, onLike, onSuperLike }) {
             </button>
             <button type="button" className="deck-action-btn deck-action-btn--like" title="LIKE" onClick={() => handleSwipeAction(currentUserCard.id)}>
               ♥
+            </button>
+            <button type="button" className="deck-action-btn deck-action-btn--boost" title="Boost" onClick={handleBoost}>
+              ⚡
             </button>
           </div>
         </>

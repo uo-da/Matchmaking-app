@@ -4,6 +4,7 @@ import LoginPage from './components/LoginPage';
 import ProfileEditor from './components/ProfileEditor';
 import SettingsPanel from './components/SettingsPanel';
 import TinderDeck from './components/TinderDeck';
+import MatchList from './components/MatchList';
 import MatchChat from './components/MatchChat';
 import authService from './services/authService';
 import storageService from './services/storageService';
@@ -62,11 +63,23 @@ function App() {
     const updated = authService.verifyAge(currentUser, age);
     storageService.saveUserProfile(updated);
     setCurrentUser(updated);
+    // 年齢確認後にプロフィールが不完全ならプロフィール編集を強制
+    if (!isProfileComplete(updated)) {
+      setSelectedTab('profile');
+    }
   };
 
   const handleProfileSave = (profile) => {
     const updated = storageService.saveUserProfile({ ...currentUser, ...profile });
     setCurrentUser(updated);
+    // プロフィールが完全になったらusersタブに戻る
+    if (isProfileComplete(updated)) {
+      setSelectedTab('users');
+    }
+  };
+
+  const isProfileComplete = (user) => {
+    return user.stackTags && user.stackTags.length > 0 && user.experienceYears > 0;
   };
 
   const handleLike = (targetId, isSuperLike = false) => {
@@ -79,6 +92,10 @@ function App() {
     if (targetUser && targetUser.likedUserIds.includes(currentUser.id)) {
       setMatchModal(targetUser);
     }
+  };
+
+  const handleBoost = () => {
+    window.alert('Boostを使用しました。GitHubのログイン頻度が高いユーザを優先表示します。');
   };
 
   const handleSelectMatch = (matchId) => {
@@ -127,29 +144,15 @@ function App() {
             currentUser={currentUser}
             users={filteredUsers}
             onLike={handleLike}
+            onBoost={handleBoost}
           />
         )}
         {selectedTab === 'matches' && (
-          <div className="match-panel">
-            {allMatches.length === 0 ? (
-              <div className="empty-state">まだマッチしたユーザがいません。いいねを送ってみましょう。</div>
-            ) : (
-              <div>
-                <div className="match-grid">
-                  {allMatches.map((match) => (
-                    <button
-                      key={match.id}
-                      type="button"
-                      className="match-chip"
-                      onClick={() => handleSelectMatch(match.id)}
-                    >
-                      {match.displayName}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <MatchList
+            currentUser={currentUser}
+            matches={allMatches}
+            onSelectMatch={handleSelectMatch}
+          />
         )}
         {selectedTab === 'chat' && selectedMatchId && (
           <MatchChat matchId={selectedMatchId} currentUser={currentUser} onSend={handleSendMessage} />
