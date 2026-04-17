@@ -125,14 +125,11 @@ function App() {
       <header className="app-header">
         <div className="header-brand">
           <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
-          <p>{currentUser.displayName} さん、ようこそ</p>
         </div>
         <div className="header-actions">
-          <button type="button" className="icon-button" aria-label="検索">🔍</button>
           <button type="button" className="icon-button" aria-label="通知">🔔</button>
-          <button type="button" className="icon-button" aria-label="プロフィール">👤</button>
-          <button type="button" onClick={handleLogout} className="secondary-button">
-            ログアウト
+          <button type="button" className="icon-button" aria-label="設定" onClick={() => setSelectedTab('settings')}>
+            ⚙️
           </button>
         </div>
       </header>
@@ -192,17 +189,17 @@ function App() {
         </div>
       )}
       <nav className="app-nav">
-        <button type="button" className={selectedTab === 'users' ? 'active' : ''} onClick={() => setSelectedTab('users')}>
-          カード
+        <button type="button" className={selectedTab === 'users' ? 'active' : ''} onClick={() => setSelectedTab('users')} aria-label="カード">
+          🔥
         </button>
-        <button type="button" className={selectedTab === 'matches' ? 'active' : ''} onClick={() => setSelectedTab('matches')}>
-          マッチ
+        <button type="button" className={selectedTab === 'matches' ? 'active' : ''} onClick={() => setSelectedTab('matches')} aria-label="マッチ">
+          🧩
         </button>
-        <button type="button" className={selectedTab === 'profile' ? 'active' : ''} onClick={() => setSelectedTab('profile')}>
-          プロフィール
+        <button type="button" className={selectedTab === 'profile' ? 'active' : ''} onClick={() => setSelectedTab('profile')} aria-label="プロフィール">
+          �
         </button>
-        <button type="button" className={selectedTab === 'settings' ? 'active' : ''} onClick={() => setSelectedTab('settings')}>
-          設定
+        <button type="button" className={selectedTab === 'settings' ? 'active' : ''} onClick={() => setSelectedTab('settings')} aria-label="設定">
+          ⚙️
         </button>
       </nav>
     </div>

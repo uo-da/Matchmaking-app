@@ -80,6 +80,7 @@ function TinderDeck({ currentUser, users, onLike, onBoost }) {
     }
   };
 
+  const nextUserCard = filteredUsers[currentIndex + 1] || null;
   const cardStyle = {
     transform: `translateX(${drag.offsetX}px) rotate(${drag.offsetX / 20}deg)`,
     transition: drag.active ? 'none' : 'transform 180ms ease',
@@ -87,61 +88,95 @@ function TinderDeck({ currentUser, users, onLike, onBoost }) {
 
   const swipeLabel = drag.offsetX > 30 ? 'LIKE' : drag.offsetX < -30 ? 'NOPE' : null;
   const swipeClass = drag.offsetX > 0 ? 'deck-card__label deck-card__label--like' : 'deck-card__label deck-card__label--nope';
+  const pageLabel = `${currentIndex + 1}/${filteredUsers.length}`;
 
   return (
     <div className="deck-shell">
       {currentUserCard ? (
         <>
-          <div
-            className="deck-card"
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            style={cardStyle}
-          >
-            <div className="deck-card__hero">
-              {swipeLabel && <div className={swipeClass}>{swipeLabel}</div>}
-              <img
-                className="deck-card__photo"
-                src={`https://github.com/${currentUserCard.githubUsername}.png?size=320`}
-                alt={`${currentUserCard.displayName} の写真`}
-                onError={(event) => {
-                  event.currentTarget.src = 'https://via.placeholder.com/320?text=No+Image';
-                }}
-              />
-              <div className="deck-card__hero-overlay" />
-            </div>
-            <div className="deck-card__info">
-              <h3 className="deck-card__name">{currentUserCard.displayName}, {currentUserCard.age}</h3>
-              {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
-              <p className="deck-card__detail">{currentUserCard.experienceYears}年の経験 / {currentUserCard.hobbies}</p>
-              <div className="deck-card__tags">
-                {currentUserCard.stackTags.map((tag) => (
-                  <span key={tag} className="deck-card__tag">{tag}</span>
-                ))}
+          <div className="deck-stack">
+            {nextUserCard && (
+              <div className="deck-card deck-card--peek" aria-hidden="true">
+                <div className="deck-card__hero">
+                  <img
+                    className="deck-card__photo"
+                    src={`https://github.com/${nextUserCard.githubUsername}.png?size=320`}
+                    alt={`${nextUserCard.displayName} の写真`}
+                    draggable="false"
+                    onDragStart={(event) => event.preventDefault()}
+                    onError={(event) => {
+                      event.currentTarget.src = 'https://via.placeholder.com/320?text=No+Image';
+                    }}
+                  />
+                  <div className="deck-card__hero-overlay" />
+                </div>
+                <div className="deck-card__info deck-card__info--peek">
+                  <h3 className="deck-card__name">{nextUserCard.displayName}, {nextUserCard.age}</h3>
+                  <p className="deck-card__detail">{nextUserCard.experienceYears}年の経験</p>
+                </div>
               </div>
-              <p className="deck-card__bio">{currentUserCard.bio}</p>
-              <div className="deck-card__status">残り {filteredUsers.length - currentIndex - 1} 人</div>
-              <div className="deck-card__hint">左にスワイプでNOPE、右にスワイプでLIKE</div>
+            )}
+            <div
+              className="deck-card deck-card--active"
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+              style={cardStyle}
+            >
+              <div className="deck-card__hero">
+                <div className="deck-card__topbar">
+                  {[...Array(6)].map((_, index) => (
+                    <span
+                      key={index}
+                      className={`deck-card__topbar-segment ${index === 0 ? 'deck-card__topbar-segment--active' : ''}`}
+                    />
+                  ))}
+                </div>
+                {swipeLabel && <div className={swipeClass}>{swipeLabel}</div>}
+                <img
+                  className="deck-card__photo"
+                  src={`https://github.com/${currentUserCard.githubUsername}.png?size=320`}
+                  alt={`${currentUserCard.displayName} の写真`}
+                  draggable="false"
+                  onDragStart={(event) => event.preventDefault()}
+                  onError={(event) => {
+                    event.currentTarget.src = 'https://via.placeholder.com/320?text=No+Image';
+                  }}
+                />
+                <div className="deck-card__hero-overlay" />
+              </div>
+              <div className="deck-card__info">
+                <div className="deck-card__meta">
+                  <h3 className="deck-card__name">{currentUserCard.displayName}, {currentUserCard.age}</h3>
+                  {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
+                </div>
+                <p className="deck-card__detail">{currentUserCard.experienceYears}年の経験 / {currentUserCard.hobbies}</p>
+                <div className="deck-card__tags">
+                  {currentUserCard.stackTags.map((tag) => (
+                    <span key={tag} className="deck-card__tag">{tag}</span>
+                  ))}
+                </div>
+                <p className="deck-card__bio">{currentUserCard.bio}</p>
+                <div className="deck-card__actions">
+                  <button type="button" className="deck-action-btn deck-action-btn--rewind" title="やり直し" onClick={handleRewind}>
+                    ⟲
+                  </button>
+                  <button type="button" className="deck-action-btn deck-action-btn--nope" title="NOPE" onClick={handleNext}>
+                    ✕
+                  </button>
+                  <button type="button" className="deck-action-btn deck-action-btn--superlike" title="スーパーライク" onClick={() => handleSwipeAction(currentUserCard.id, true)}>
+                    ★
+                  </button>
+                  <button type="button" className="deck-action-btn deck-action-btn--like" title="LIKE" onClick={() => handleSwipeAction(currentUserCard.id)}>
+                    ♥
+                  </button>
+                  <button type="button" className="deck-action-btn deck-action-btn--boost" title="Boost" onClick={handleBoost}>
+                    ⚡
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="deck-actions">
-            <button type="button" className="deck-action-btn deck-action-btn--rewind" title="やり直し" onClick={handleRewind}>
-              ⟲
-            </button>
-            <button type="button" className="deck-action-btn deck-action-btn--nope" title="NOPE" onClick={handleNext}>
-              ✕
-            </button>
-            <button type="button" className="deck-action-btn deck-action-btn--superlike" title="スーパーライク" onClick={() => handleSwipeAction(currentUserCard.id, true)}>
-              ★
-            </button>
-            <button type="button" className="deck-action-btn deck-action-btn--like" title="LIKE" onClick={() => handleSwipeAction(currentUserCard.id)}>
-              ♥
-            </button>
-            <button type="button" className="deck-action-btn deck-action-btn--boost" title="Boost" onClick={handleBoost}>
-              ⚡
-            </button>
           </div>
         </>
       ) : (

@@ -15,21 +15,25 @@ body,
   min-height: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background: radial-gradient(circle at top, #fff1f3 0%, #fef3c7 30%, #f7f8fc 100%);
+  overflow: hidden;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
 }
 
 .app-shell {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 16px 16px 140px;
+  padding: 16px 16px 220px;
 }
 
 .app-header {
+  position: relative;
+  z-index: 20;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -87,21 +91,31 @@ body {
   z-index: 999;
 }
 
+.app-main {
+  position: relative;
+  z-index: 1;
+}
+
 .app-nav button {
   border: none;
-  padding: 12px 16px;
-  border-radius: 9999px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: 18px;
   background: #f8fafc;
   color: #475569;
   cursor: pointer;
   font-weight: 700;
-  min-width: 92px;
+  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .app-nav button.active,
 .app-nav button:hover {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: #eff6ff;
+  color: #2563eb;
 }
 
 .app-header p {
@@ -138,35 +152,99 @@ body {
 
 .deck-shell {
   display: grid;
-  gap: 20px;
+  gap: 24px;
+  justify-items: center;
+}
+
+.deck-stack {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  min-height: 740px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .deck-card {
-  position: relative;
+  position: absolute;
   width: 100%;
-  max-width: 680px;
+  max-width: 720px;
   margin: 0 auto;
   padding: 0;
   background: #ffffff;
   border-radius: 32px;
-  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 40px 90px rgba(15, 23, 42, 0.18);
   overflow: hidden;
   user-select: none;
   border: none;
 }
 
+.deck-card__hero,
+.deck-card__info {
+  position: relative;
+  z-index: 2;
+}
+
+.deck-card--peek {
+  transform: scale(0.96);
+  opacity: 0.82;
+  top: 16px;
+  z-index: 1;
+}
+
+.deck-card__topbar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  z-index: 3;
+}
+
+.deck-card__topbar-segment {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.32);
+  border-radius: 9999px;
+}
+
+.deck-card__topbar-segment--active {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.deck-card--active {
+  z-index: 2;
+}
+
 .deck-card__hero {
   position: relative;
   width: 100%;
-  min-height: 420px;
+  min-height: 460px;
   overflow: hidden;
+}
+
+.deck-card__page {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
+  border-radius: 9999px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
 }
 
 .deck-card__hero::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.18) 28%, rgba(255,255,255,0.0) 45%, rgba(255,255,255,0.9) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.18) 32%, rgba(255,255,255,0.00) 60%, rgba(255,255,255,0.92) 100%);
   pointer-events: none;
 }
 
@@ -178,73 +256,88 @@ body {
 }
 
 .deck-card__info {
-  text-align: center;
+  padding: 24px 24px 28px;
+  text-align: left;
+}
+
+.deck-card__info--peek {
+  padding: 18px 20px 22px;
+}
+
+.deck-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .deck-card__name {
   margin: 0;
   font-size: 2rem;
+  letter-spacing: -0.04em;
+}
+
+.deck-card__badge {
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
 .deck-card__detail {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   color: #475569;
+  line-height: 1.5;
 }
 
 .deck-card__tags {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 8px;
-  margin: 16px 0 12px;
+  gap: 10px;
+  margin: 18px 0 14px;
 }
 
 .deck-card__tag {
-  background: rgba(255, 56, 96, 0.12);
-  color: #b91c1c;
+  background: rgba(248, 113, 113, 0.12);
+  color: #991b1b;
   padding: 8px 14px;
   border-radius: 9999px;
-  font-size: 0.85rem;
-  border: 1px solid rgba(249, 115, 22, 0.12);
-}
-
-.deck-card__info {
-  padding: 20px 24px 26px;
-}
-
-.deck-card__name {
-  margin: 0;
-  font-size: 2rem;
-  letter-spacing: -0.03em;
-}
-
-.deck-card__detail {
-  margin: 10px 0 0;
-  color: #64748b;
+  font-size: 0.88rem;
+  border: 1px solid rgba(248, 113, 113, 0.16);
 }
 
 .deck-card__bio {
   color: #334155;
-  line-height: 1.7;
-  min-height: 70px;
-  margin: 0 0 16px;
+  line-height: 1.8;
+  min-height: 78px;
+  margin: 0 0 18px;
+}
+
+.deck-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
 }
 
 .deck-card__status {
   display: inline-flex;
-  padding: 8px 14px;
+  padding: 10px 16px;
   border-radius: 9999px;
-  border: 1px solid rgba(251, 113, 133, 0.25);
-  background: rgba(254, 226, 226, 0.9);
-  color: #b91c1c;
-  margin-top: 8px;
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  background: rgba(219, 234, 254, 0.9);
+  color: #1d4ed8;
+  font-weight: 700;
 }
 
 .deck-card__hint {
-  margin-top: 12px;
-  color: #94a3b8;
-  text-align: left;
+  color: #64748b;
   font-size: 0.95rem;
+  text-align: right;
 }
 
 .deck-card__label {
@@ -255,21 +348,21 @@ body {
   border-radius: 9999px;
   color: #ffffff;
   font-size: 1rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   font-weight: 800;
   text-transform: uppercase;
   z-index: 2;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.14);
 }
 
 .deck-card__label--like {
-  background: rgba(22, 163, 74, 0.92);
+  background: rgba(22, 163, 74, 0.95);
 }
 
 .deck-card__label--nope {
   left: auto;
   right: 22px;
-  background: rgba(244, 63, 94, 0.92);
+  background: rgba(239, 68, 68, 0.95);
 }
 
 .deck-card {
@@ -280,33 +373,56 @@ body {
   cursor: grabbing;
 }
 
-.deck-actions button {
-  min-width: 112px;
+.deck-card__actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 0 4px;
 }
 
-.deck-card__status {
+.deck-action-btn {
+  width: 62px;
+  height: 62px;
+  border: none;
+  border-radius: 50%;
   display: inline-flex;
-  padding: 8px 14px;
-  border-radius: 9999px;
-  border: 1px solid #c7d2fe;
-  background: #eef2ff;
-  color: #1e40af;
-  margin-top: 12px;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  cursor: pointer;
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.12);
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease;
 }
 
-.deck-card__hint {
-  margin-top: 16px;
-  color: #64748b;
-  text-align: center;
-  font-size: 0.95rem;
+.deck-action-btn:hover {
+  transform: translateY(-2px);
 }
 
-.deck-card {
-  cursor: grab;
+.deck-action-btn--rewind {
+  background: #f8fafc;
+  color: #0f172a;
 }
 
-.deck-card:active {
-  cursor: grabbing;
+.deck-action-btn--nope {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.deck-action-btn--superlike {
+  background: #c7d2fe;
+  color: #3730a3;
+}
+
+.deck-action-btn--like {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.deck-action-btn--boost {
+  background: #fef9c3;
+  color: #b45309;
 }
 
 .card {
