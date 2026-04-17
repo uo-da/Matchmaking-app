@@ -45,11 +45,14 @@ const chatService = {
     const key = CHAT_PREFIX + matchKey;
     const messages = await this.getMessages(senderId, receiverId);
     const message = {
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
       senderId,
       receiverId,
       text,
       timestamp: Date.now(),
-      matchKey
+      matchKey,
+      isRead: false,
+      type: 'message'
     };
     const next = [...messages, message];
     window.localStorage.setItem(key, JSON.stringify(next));
@@ -57,13 +60,39 @@ const chatService = {
     return message;
   },
 
+  async markMessagesAsRead(userId, matchId) {
+    const matchKey = this.getMatchKey(userId, matchId);
+    const key = CHAT_PREFIX + matchKey;
+    const messages = await this.getMessages(userId, matchId);
+    let changed = false;
+    const updated = messages.map((message) => {
+      if (message.receiverId === userId && !message.isRead) {
+        changed = true;
+        return { ...message, isRead: true };
+      }
+      return message;
+    });
+    if (changed) {
+      window.localStorage.setItem(key, JSON.stringify(updated));
+      this.notify({
+        type: 'read',
+        matchKey,
+        matchId,
+        readBy: userId,
+        timestamp: Date.now()
+      });
+    }
+    return updated;
+  },
+
   notify(message) {
+    const payload = { ...message, timestamp: Date.now() };
     if (typeof BroadcastChannel !== 'undefined') {
       const channel = new BroadcastChannel('matchmaking-chat');
-      channel.postMessage(message);
+      channel.postMessage(payload);
       channel.close();
     } else {
-      window.localStorage.setItem('matchmaking_chat_event', JSON.stringify({ ...message, timestamp: Date.now() }));
+      window.localStorage.setItem('matchmaking_chat_event', JSON.stringify(payload));
     }
   },
 

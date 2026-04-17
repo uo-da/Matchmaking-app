@@ -14,12 +14,20 @@ function MatchChat({ matchId, currentUser, onSend }) {
     const fetchMessages = async () => {
       const loaded = await chatService.getMessages(currentUser.id, matchId);
       setMessages(loaded);
+      await chatService.markMessagesAsRead(currentUser.id, matchId);
     };
     fetchMessages();
 
-    const channel = chatService.subscribe((message) => {
-      if (message.matchKey === chatService.getMatchKey(currentUser.id, matchId)) {
-        setMessages((prev) => [...prev, message]);
+    const channel = chatService.subscribe((event) => {
+      if (event.matchKey !== chatService.getMatchKey(currentUser.id, matchId)) {
+        return;
+      }
+      if (event.type === 'message') {
+        setMessages((prev) => (prev.some((item) => item.id === event.id) ? prev : [...prev, event]));
+        return;
+      }
+      if (event.type === 'read') {
+        chatService.getMessages(currentUser.id, matchId).then((loaded) => setMessages(loaded));
       }
     });
     return () => channel.unsubscribe();
@@ -30,10 +38,11 @@ function MatchChat({ matchId, currentUser, onSend }) {
     if (!text.trim()) {
       return;
     }
-    await onSend(matchId, text.trim());
+    const message = await onSend(matchId, text.trim());
     setText('');
-    const loaded = await chatService.getMessages(currentUser.id, matchId);
-    setMessages(loaded);
+    if (message && !messages.some((item) => item.id === message.id)) {
+      setMessages((prev) => [...prev, message]);
+    }
   };
 
   return (
@@ -54,6 +63,9 @@ function MatchChat({ matchId, currentUser, onSend }) {
               <div style={{ display: 'inline-block', background: message.senderId === currentUser.id ? '#2563eb' : '#f3f4f6', color: message.senderId === currentUser.id ? '#fff' : '#111827', padding: '10px 14px', borderRadius: 18, maxWidth: '80%' }}>
                 {message.text}
               </div>
+              {message.senderId === currentUser.id && message.isRead && (
+                <div className="message-status">既読</div>
+              )}
             </div>
           ))
         )}

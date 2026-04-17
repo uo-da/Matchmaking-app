@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+const popularTags = ['React', 'Vue', 'Angular', 'Node.js', 'TypeScript', 'Python', 'Go', 'AWS', 'Docker', 'Kubernetes'];
+
 /**
  * @param {{ user: Object, onSave: (profile: Object) => void }} props
  */
@@ -12,14 +14,41 @@ function ProfileEditor({ user, onSave }) {
     hobbies: user.hobbies || '',
     githubUsername: user.githubUsername || ''
   });
+  const [errors, setErrors] = useState({});
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setProfile((prev) => ({ ...prev, [name]: value }));
+    const normalizedValue = name === 'experienceYears' ? Math.max(0, Number(value) || 0) : value;
+    setProfile((prev) => ({ ...prev, [name]: normalizedValue }));
+  };
+
+  const handleTagClick = (tag) => {
+    const tags = profile.stackTags
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const nextTags = tags.includes(tag) ? tags : [...tags, tag];
+    setProfile((prev) => ({ ...prev, stackTags: nextTags.join(', ') }));
+  };
+
+  const validateProfile = () => {
+    const newErrors = {};
+    const tags = profile.stackTags.split(',').map((tag) => tag.trim()).filter(Boolean);
+    if (tags.length === 0) {
+      newErrors.stackTags = '技術スタックを少なくとも1つ入力してください。';
+    }
+    if (!profile.experienceYears || profile.experienceYears <= 0) {
+      newErrors.experienceYears = '経験年数を入力してください。';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    if (!validateProfile()) {
+      return;
+    }
     onSave({
       displayName: profile.displayName.trim() || user.displayName,
       bio: profile.bio.trim(),
@@ -47,12 +76,43 @@ function ProfileEditor({ user, onSave }) {
           <textarea id="bio" name="bio" value={profile.bio} onChange={handleChange} rows="4" />
         </div>
         <div className="field">
-          <label htmlFor="stackTags">技術スタック (カンマ区切り)</label>
-          <input id="stackTags" name="stackTags" value={profile.stackTags} onChange={handleChange} />
+          <label>よく使われる技術タグ</label>
+          <div className="tags-list">
+            {popularTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className={`small-button ${profile.stackTags.split(',').map((item) => item.trim()).includes(tag) ? 'active-tag' : ''}`}
+                onClick={() => handleTagClick(tag)}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="field">
-          <label htmlFor="experienceYears">経験年数</label>
-          <input id="experienceYears" name="experienceYears" type="number" value={profile.experienceYears} onChange={handleChange} />
+          <label htmlFor="stackTags">技術スタック <span style={{ color: 'red' }}>*</span></label>
+          <input
+            id="stackTags"
+            name="stackTags"
+            value={profile.stackTags}
+            onChange={handleChange}
+            placeholder="例: React, Node.js, TypeScript"
+          />
+          {errors.stackTags && <div style={{ color: 'red', fontSize: '0.9rem' }}>{errors.stackTags}</div>}
+          <small>複数指定する場合はカンマ区切りで入力できます。</small>
+        </div>
+        <div className="field">
+          <label htmlFor="experienceYears">経験年数 <span style={{ color: 'red' }}>*</span></label>
+          <input
+            id="experienceYears"
+            name="experienceYears"
+            type="number"
+            min="0"
+            value={profile.experienceYears}
+            onChange={handleChange}
+          />
+          {errors.experienceYears && <div style={{ color: 'red', fontSize: '0.9rem' }}>{errors.experienceYears}</div>}
         </div>
         <div className="field">
           <label htmlFor="hobbies">趣味</label>
