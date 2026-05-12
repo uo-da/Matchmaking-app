@@ -5,6 +5,7 @@ import ProfileEditor from './components/ProfileEditor';
 import SettingsPanel from './components/SettingsPanel';
 import TinderDeck from './components/TinderDeck';
 import MatchList from './components/MatchList';
+import TalkList from './components/TalkList';
 import MatchChat from './components/MatchChat';
 import Footer from './components/Footer';
 import authService from './services/authService';
@@ -131,6 +132,13 @@ function App() {
     return message;
   };
 
+  const handleTabChange = (tabId) => {
+    if (tabId === 'chat') {
+      setSelectedMatchId(null);
+    }
+    setSelectedTab(tabId);
+  };
+
   if (!currentUser) {
     return <LoginPage onLogin={handleLogin} />;
   }
@@ -145,6 +153,7 @@ function App() {
         'app-shell',
         selectedTab === 'users' ? 'app-shell--users' : '',
         selectedTab === 'matches' ? 'app-shell--likes' : '',
+        selectedTab === 'chat' ? 'app-shell--chat' : '',
         selectedTab === 'settings' ? 'app-shell--settings' : ''
       ].filter(Boolean).join(' ')}
     >
@@ -176,6 +185,14 @@ function App() {
         )}
         {selectedTab === 'matches' && (
           <MatchList
+            currentUser={currentUser}
+            users={allUsers}
+            matchedUserIds={matchedUserIds}
+            onSelectMatch={handleSelectMatch}
+          />
+        )}
+        {selectedTab === 'chat' && !selectedMatchId && (
+          <TalkList
             currentUser={currentUser}
             users={allUsers}
             matchedUserIds={matchedUserIds}
@@ -219,7 +236,7 @@ function App() {
           </div>
         </div>
       )}
-      <Footer activeTab={selectedTab} onTabChange={setSelectedTab} />
+      <Footer activeTab={selectedTab} onTabChange={handleTabChange} />
     </div>
   );
 }
