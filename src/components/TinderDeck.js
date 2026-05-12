@@ -5,7 +5,14 @@ import React, { useEffect, useMemo, useState } from 'react';
  */
 function TinderDeck({ currentUser, users, onLike }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0, source: null });
+  const [drag, setDrag] = useState({
+    active: false,
+    startX: 0,
+    startY: 0,
+    offsetX: 0,
+    offsetY: 0,
+    source: null
+  });
 
   const filteredUsers = useMemo(() => users, [users]);
   const currentUserCard = filteredUsers[currentIndex] || null;
@@ -21,7 +28,7 @@ function TinderDeck({ currentUser, users, onLike }) {
 
   const handleNext = () => {
     setCurrentIndex((value) => Math.min(value + 1, filteredUsers.length));
-    setDrag({ active: false, startX: 0, offsetX: 0, source: null });
+    setDrag({ active: false, startX: 0, startY: 0, offsetX: 0, offsetY: 0, source: null });
   };
 
   const handleSwipeAction = (targetId, isSuperLike = false) => {
@@ -32,15 +39,19 @@ function TinderDeck({ currentUser, users, onLike }) {
     handleNext();
   };
 
-  const startDrag = (clientX, source) => {
-    setDrag({ active: true, startX: clientX, offsetX: 0, source });
+  const startDrag = (clientX, clientY, source) => {
+    setDrag({ active: true, startX: clientX, startY: clientY, offsetX: 0, offsetY: 0, source });
   };
 
-  const updateDrag = (clientX, source) => {
+  const updateDrag = (clientX, clientY, source) => {
     if (!drag.active || drag.source !== source) {
       return;
     }
-    setDrag((prev) => ({ ...prev, offsetX: clientX - prev.startX }));
+    setDrag((prev) => ({
+      ...prev,
+      offsetX: clientX - prev.startX,
+      offsetY: clientY - prev.startY
+    }));
   };
 
   const finishDrag = (source) => {
@@ -49,22 +60,29 @@ function TinderDeck({ currentUser, users, onLike }) {
     }
 
     if (!drag.active || !currentUserCard) {
-      setDrag({ active: false, startX: 0, offsetX: 0, source: null });
+      setDrag({ active: false, startX: 0, startY: 0, offsetX: 0, offsetY: 0, source: null });
       return;
     }
 
-    const threshold = 80;
-    if (drag.offsetX > threshold) {
+    const horizontalThreshold = 80;
+    const verticalThreshold = 100;
+    const absX = Math.abs(drag.offsetX);
+    const absY = Math.abs(drag.offsetY);
+    const isVerticalDominant = absY > absX;
+
+    if (isVerticalDominant && drag.offsetY < -verticalThreshold) {
+      handleSwipeAction(currentUserCard.id, true);
+    } else if (drag.offsetX > horizontalThreshold) {
       handleSwipeAction(currentUserCard.id);
-    } else if (drag.offsetX < -threshold) {
+    } else if (drag.offsetX < -horizontalThreshold) {
       handleNext();
     } else {
-      setDrag({ active: false, startX: 0, offsetX: 0, source: null });
+      setDrag({ active: false, startX: 0, startY: 0, offsetX: 0, offsetY: 0, source: null });
     }
   };
 
   const onPointerDown = (event) => {
-    startDrag(event.clientX, 'pointer');
+    startDrag(event.clientX, event.clientY, 'pointer');
     if (event.currentTarget.setPointerCapture) {
       try {
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -75,7 +93,7 @@ function TinderDeck({ currentUser, users, onLike }) {
   };
 
   const onPointerMove = (event) => {
-    updateDrag(event.clientX, 'pointer');
+    updateDrag(event.clientX, event.clientY, 'pointer');
   };
 
   const onPointerUp = () => {
@@ -86,14 +104,14 @@ function TinderDeck({ currentUser, users, onLike }) {
     if (!event.touches || event.touches.length === 0) {
       return;
     }
-    startDrag(event.touches[0].clientX, 'touch');
+    startDrag(event.touches[0].clientX, event.touches[0].clientY, 'touch');
   };
 
   const onTouchMove = (event) => {
     if (!event.touches || event.touches.length === 0) {
       return;
     }
-    updateDrag(event.touches[0].clientX, 'touch');
+    updateDrag(event.touches[0].clientX, event.touches[0].clientY, 'touch');
     if (drag.active && drag.source === 'touch') {
       event.preventDefault();
     }
@@ -104,12 +122,22 @@ function TinderDeck({ currentUser, users, onLike }) {
   };
 
   const cardStyle = {
-    transform: `translateX(${drag.offsetX}px) rotate(${drag.offsetX / 20}deg)`,
+    transform: `translate(${drag.offsetX}px, ${drag.offsetY}px) rotate(${drag.offsetX / 20}deg)`,
     transition: drag.active ? 'none' : 'transform 180ms ease',
   };
 
-  const swipeLabel = drag.offsetX > 30 ? 'LIKE' : drag.offsetX < -30 ? 'NOPE' : null;
-  const swipeClass = drag.offsetX > 0 ? 'deck-card__label deck-card__label--like' : 'deck-card__label deck-card__label--nope';
+  const swipeLabel = drag.offsetY < -30 && Math.abs(drag.offsetY) > Math.abs(drag.offsetX)
+    ? 'SUPER LIKE'
+    : drag.offsetX > 30
+      ? 'LIKE'
+      : drag.offsetX < -30
+        ? 'NOPE'
+        : null;
+  const swipeClass = swipeLabel === 'SUPER LIKE'
+    ? 'deck-card__label deck-card__label--superlike'
+    : drag.offsetX > 0
+      ? 'deck-card__label deck-card__label--like'
+      : 'deck-card__label deck-card__label--nope';
 
   return (
     <div className="deck-shell deck-shell--vendor">

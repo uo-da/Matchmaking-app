@@ -314,6 +314,15 @@ body {
   background: rgba(239, 68, 68, 0.95);
 }
 
+.deck-card__label--superlike {
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(37, 99, 235, 0.95);
+  white-space: nowrap;
+  text-align: center;
+  max-width: calc(100% - 24px);
+}
+
 .deck-card {
   cursor: grab;
 }
@@ -959,7 +968,7 @@ button.superlike {
   border-radius: 12px;
   box-shadow: none;
   overflow: hidden;
-  touch-action: pan-y;
+  touch-action: none;
 }
 
 .app-shell--users .deck-card__hero {
@@ -1122,6 +1131,7 @@ button.superlike {
     height: 66px;
     font-size: 2rem;
   }
+
 }
 
 @media (max-height: 820px) {

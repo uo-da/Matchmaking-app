@@ -86,7 +86,9 @@ function App() {
 
     // マッチ成立処理
     const targetUser = storageService.getUserById(targetId);
-    if (targetUser && targetUser.likedUserIds.includes(currentUser.id)) {
+    const targetLikedCurrent = targetUser
+      && (targetUser.likedUserIds.includes(currentUser.id) || targetUser.superLikedUserIds.includes(currentUser.id));
+    if (targetLikedCurrent) {
       setMatchModal(targetUser);
     }
   };
