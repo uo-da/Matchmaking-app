@@ -10,7 +10,7 @@ import Footer from './components/Footer';
 import authService from './services/authService';
 import storageService from './services/storageService';
 import chatService from './services/chatService';
-import { filterUsersByCriteria, getMatchesForUser } from './utils/matchUtils';
+import { filterUsersByCriteria } from './utils/matchUtils';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -39,14 +39,16 @@ function App() {
     setAllUsers(storageService.getUsers());
   }, [refreshToggle]);
 
-  const allMatches = useMemo(() => (currentUser ? getMatchesForUser(currentUser.id, allUsers) : []), [currentUser, allUsers]);
-
   const filteredUsers = useMemo(() => {
     if (!currentUser) {
       return [];
     }
     return filterUsersByCriteria(allUsers.filter((user) => user.id !== currentUser.id), filter);
   }, [allUsers, currentUser, filter]);
+
+  const matchedUserIds = useMemo(() => {
+    return new Set(currentUser?.matches || []);
+  }, [currentUser]);
 
   const handleLogin = (username) => {
     const user = authService.loginWithGitHub(username);
@@ -90,12 +92,19 @@ function App() {
   };
 
   const handleSelectMatch = (matchId) => {
+    if (!matchedUserIds.has(matchId)) {
+      window.alert('マッチ成立前のユーザーとはチャットできません。');
+      return;
+    }
     setSelectedMatchId(matchId);
     setSelectedTab('chat');
   };
 
   const handleSendMessage = async (matchId, text) => {
     if (!currentUser) {
+      return null;
+    }
+    if (!matchedUserIds.has(matchId)) {
       return null;
     }
     const message = await chatService.sendMessage(currentUser.id, matchId, text);
@@ -112,7 +121,13 @@ function App() {
   }
 
   return (
-    <div className={`app-shell ${selectedTab === 'users' ? 'app-shell--users' : ''}`}>
+    <div
+      className={[
+        'app-shell',
+        selectedTab === 'users' ? 'app-shell--users' : '',
+        selectedTab === 'matches' ? 'app-shell--likes' : ''
+      ].filter(Boolean).join(' ')}
+    >
       <header className="app-header">
         <div className="header-brand">
           <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
@@ -141,7 +156,8 @@ function App() {
         {selectedTab === 'matches' && (
           <MatchList
             currentUser={currentUser}
-            matches={allMatches}
+            users={allUsers}
+            matchedUserIds={matchedUserIds}
             onSelectMatch={handleSelectMatch}
           />
         )}
