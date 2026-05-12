@@ -1,18 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AgeVerification from './components/AgeVerification';
+import EntrancePage from './components/EntrancePage';
 import LoginPage from './components/LoginPage';
 import ProfileEditor from './components/ProfileEditor';
 import SettingsPanel from './components/SettingsPanel';
 import TinderDeck from './components/TinderDeck';
 import MatchList from './components/MatchList';
 import MatchChat from './components/MatchChat';
-import authService from './services/authService';
+const authService = require('./services/authService');
 import storageService from './services/storageService';
 import chatService from './services/chatService';
 import { filterUsersByCriteria, getMatchesForUser } from './utils/matchUtils';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isEntranceVisible, setIsEntranceVisible] = useState(true);
+  const [authError, setAuthError] = useState(false);
   const [selectedTab, setSelectedTab] = useState('users');
   const [filter, setFilter] = useState({ stackTag: '', minYears: 0 });
   const [selectedMatchId, setSelectedMatchId] = useState(null);
@@ -21,11 +24,22 @@ function App() {
   const [matchModal, setMatchModal] = useState(null);
 
   useEffect(() => {
-    storageService.seedSampleData();
-    chatService.seedSampleMessages();
-    const saved = authService.getCurrentSession();
-    setCurrentUser(saved);
-    setAllUsers(storageService.getUsers());
+    const loadSession = async () => {
+      try {
+        const saved = await authService.getCurrentSession();
+        setCurrentUser(saved);
+        setAuthError(false);
+      } catch (error) {
+        console.error('Failed to load session:', error);
+        setAuthError(true);
+      }
+    };
+    if (process.env.NODE_ENV === 'test') {
+      const saved = authService.getCurrentSession();
+      setCurrentUser(saved);
+    } else {
+      loadSession();
+    }
   }, []);
 
   useEffect(() => {
@@ -47,19 +61,32 @@ function App() {
     return filterUsersByCriteria(allUsers.filter((user) => user.id !== currentUser.id), filter);
   }, [allUsers, currentUser, filter]);
 
-  const handleLogin = (username) => {
-    const user = authService.loginWithGitHub(username);
-    setCurrentUser(user);
-    setSelectedTab('users');
+  const handleLogin = (user) => {
+    if (user) {
+      setCurrentUser(user);
+      setSelectedTab('users');
+    }
   };
 
-  const handleLogout = () => {
-    authService.logout();
-    setCurrentUser(null);
-    setSelectedMatchId(null);
+  const handleLogout = async () => {
+    if (process.env.NODE_ENV === 'test') {
+      authService.logout();
+      setCurrentUser(null);
+      setIsEntranceVisible(true);
+    } else {
+      const success = await authService.logout();
+      if (success) {
+        setCurrentUser(null);
+        setIsEntranceVisible(true);
+      }
+    }
   };
 
   const handleAgeConfirm = (age) => {
+    if (!currentUser) {
+      console.error('No current user for age verification');
+      return;
+    }
     const updated = authService.verifyAge(currentUser, age);
     storageService.saveUserProfile(updated);
     setCurrentUser(updated);
@@ -113,7 +140,11 @@ function App() {
   };
 
   if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} />;
+    if (isEntranceVisible) {
+      return <EntrancePage onEnter={() => setIsEntranceVisible(false)} />;
+    }
+
+    return <LoginPage onLogin={handleLogin} authError={authError} />;
   }
 
   if (!currentUser.ageVerified) {
@@ -128,6 +159,9 @@ function App() {
         </div>
         <div className="header-actions">
           <button type="button" className="icon-button" aria-label="通知">🔔</button>
+          <button type="button" className="icon-button" aria-label="ログアウト" onClick={handleLogout}>
+            🚪
+          </button>
           <button type="button" className="icon-button" aria-label="設定" onClick={() => setSelectedTab('settings')}>
             ⚙️
           </button>

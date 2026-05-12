@@ -472,11 +472,55 @@ button.secondary-button {
   border: none;
   font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 18px;
 }
 
 button.primary-button {
   background: #2563eb;
   color: #ffffff;
+}
+
+.login-button {
+  min-width: 240px;
+}
+
+.login-button__icon {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+}
+
+.login-panel {
+  width: 100%;
+  max-width: 520px;
+  padding: 58px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 18px;
+}
+
+.login-panel h1,
+.login-panel p {
+  margin: 0;
+}
+
+.login-panel p {
+  color: #475569;
+  font-size: 1rem;
+  line-height: 1.7;
 }
 
 button.secondary-button {
@@ -490,6 +534,80 @@ button.small-button {
   border-radius: 10px;
   padding: 8px 12px;
   cursor: pointer;
+}
+
+.entrance-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  background: #ffffff;
+}
+
+.entrance-card {
+  width: 100%;
+  max-width: 760px;
+  padding: 72px 32px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
+.entrance-card__logo {
+  margin: 0 auto 24px;
+  display: grid;
+  place-items: center;
+}
+
+.entrance-card__logo img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.entrance-card__brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.entrance-card__brand img {
+  height: 48px;
+  width: auto;
+}
+
+.entrance-card__tagline {
+  color: #f97316;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin: 0 auto 32px;
+  max-width: 320px;
+}
+
+.entrance-card__action {
+  width: 100%;
+  max-width: 280px;
+  padding: 14px 0;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, #ff7c3b 0%, #ff4500 100%);
+  border-radius: 16px;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 14px 30px rgba(255, 124, 59, 0.3);
+}
+
+.entrance-card__action:hover {
+  filter: brightness(0.96);
+}
+
+.entrance-card__hint {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 button.superlike {
