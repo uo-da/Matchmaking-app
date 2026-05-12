@@ -43,7 +43,15 @@ function App() {
     if (!currentUser) {
       return [];
     }
-    return filterUsersByCriteria(allUsers.filter((user) => user.id !== currentUser.id), filter);
+    const likedIds = Array.isArray(currentUser.likedUserIds) ? currentUser.likedUserIds : [];
+    const superLikedIds = Array.isArray(currentUser.superLikedUserIds) ? currentUser.superLikedUserIds : [];
+    const nopedIds = Array.isArray(currentUser.nopedUserIds) ? currentUser.nopedUserIds : [];
+    const reactedUserIds = new Set([...likedIds, ...superLikedIds, ...nopedIds]);
+
+    return filterUsersByCriteria(
+      allUsers.filter((user) => user.id !== currentUser.id && !reactedUserIds.has(user.id)),
+      filter
+    );
   }, [allUsers, currentUser, filter]);
 
   const matchedUserIds = useMemo(() => {
@@ -91,6 +99,15 @@ function App() {
     if (targetLikedCurrent) {
       setMatchModal(targetUser);
     }
+  };
+
+  const handleNope = (targetId) => {
+    const updated = storageService.saveUserNope(currentUser.id, targetId);
+    if (!updated) {
+      return;
+    }
+    setCurrentUser(storageService.getUserById(updated.id));
+    setRefreshToggle((value) => !value);
   };
 
   const handleSelectMatch = (matchId) => {
@@ -154,6 +171,7 @@ function App() {
             currentUser={currentUser}
             users={filteredUsers}
             onLike={handleLike}
+            onNope={handleNope}
           />
         )}
         {selectedTab === 'matches' && (

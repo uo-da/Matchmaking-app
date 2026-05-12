@@ -144,9 +144,9 @@ body {
 }
 
 .deck-card--peek {
-  transform: scale(0.96);
-  opacity: 0.82;
-  top: 16px;
+  transform: none;
+  opacity: 0.95;
+  top: 0;
   z-index: 1;
 }
 
@@ -1247,6 +1247,13 @@ button.superlike {
   touch-action: none;
 }
 
+.app-shell--users .deck-card--peek.deck-card--vendor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
 .app-shell--users .deck-card__hero {
   min-height: 0;
 }
@@ -1283,6 +1290,15 @@ button.superlike {
 .app-shell--users .deck-card__tags {
   margin: 14px 0 0;
   gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.app-shell--users .deck-card__tags::-webkit-scrollbar {
+  display: none;
 }
 
 .app-shell--users .deck-card__tag {
@@ -1291,6 +1307,8 @@ button.superlike {
   color: #1d1d1d;
   padding: 6px 14px;
   font-size: 0.96rem;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .app-shell--users .deck-card__bio {

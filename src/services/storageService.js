@@ -14,6 +14,7 @@ const sampleUsers = [
     hobbies: '読書, カフェ巡り',
     likedUserIds: ['user-2'],
     superLikedUserIds: [],
+    nopedUserIds: [],
     matches: ['user-2']
   },
   {
@@ -28,6 +29,7 @@ const sampleUsers = [
     hobbies: 'キャンプ, 写真',
     likedUserIds: ['user-1'],
     superLikedUserIds: [],
+    nopedUserIds: [],
     matches: ['user-1']
   },
   {
@@ -42,6 +44,7 @@ const sampleUsers = [
     hobbies: 'ラーメン, 映画',
     likedUserIds: [],
     superLikedUserIds: [],
+    nopedUserIds: [],
     matches: []
   },
   {
@@ -56,6 +59,7 @@ const sampleUsers = [
     hobbies: '登山, 写真',
     likedUserIds: ['user-1'],
     superLikedUserIds: [],
+    nopedUserIds: [],
     matches: []
   },
   {
@@ -70,6 +74,7 @@ const sampleUsers = [
     hobbies: 'カフェ, イラスト',
     likedUserIds: [],
     superLikedUserIds: ['user-1'],
+    nopedUserIds: [],
     matches: []
   },
   {
@@ -84,6 +89,7 @@ const sampleUsers = [
     hobbies: 'ゲーム, ハイキング',
     likedUserIds: [],
     superLikedUserIds: [],
+    nopedUserIds: [],
     matches: []
   },
   {
@@ -98,6 +104,7 @@ const sampleUsers = [
     hobbies: 'ギター, キャンプ',
     likedUserIds: [],
     superLikedUserIds: [],
+    nopedUserIds: [],
     matches: []
   },
   {
@@ -112,6 +119,7 @@ const sampleUsers = [
     hobbies: 'ロードバイク, 料理',
     likedUserIds: [],
     superLikedUserIds: [],
+    nopedUserIds: [],
     matches: []
   }
 ];
@@ -174,6 +182,7 @@ const storageService = {
       hobbies: '',
       likedUserIds: [],
       superLikedUserIds: [],
+      nopedUserIds: [],
       matches: []
     };
     users.push(newUser);
@@ -199,6 +208,7 @@ const storageService = {
     const normalizeArray = (arr) => (Array.isArray(arr) ? arr : []);
     const userLikes = normalizeArray(user.likedUserIds);
     const userSuperLikes = normalizeArray(user.superLikedUserIds);
+    const userNopes = normalizeArray(user.nopedUserIds);
     const targetLikes = normalizeArray(target.likedUserIds);
     const targetSuperLikes = normalizeArray(target.superLikedUserIds);
     const userMatches = normalizeArray(user.matches);
@@ -210,6 +220,7 @@ const storageService = {
     } else {
       user.likedUserIds = addUnique(userLikes, targetId);
     }
+    user.nopedUserIds = userNopes.filter((id) => id !== targetId);
 
     const isMutual = targetLikes.includes(userId) || targetSuperLikes.includes(userId);
     if (isMutual) {
@@ -227,6 +238,24 @@ const storageService = {
       return item;
     });
 
+    this.setUsers(updatedUsers);
+    return updatedUsers.find((item) => item.id === userId);
+  },
+
+  saveUserNope(userId, targetId) {
+    const users = this.getUsers();
+    const user = users.find((item) => item.id === userId);
+    const target = users.find((item) => item.id === targetId);
+    if (!user || !target || userId === targetId) {
+      return user;
+    }
+
+    const normalizeArray = (arr) => (Array.isArray(arr) ? arr : []);
+    const addUnique = (list, value) => (list.includes(value) ? list : [...list, value]);
+    const userNopes = normalizeArray(user.nopedUserIds);
+    user.nopedUserIds = addUnique(userNopes, targetId);
+
+    const updatedUsers = users.map((item) => (item.id === user.id ? { ...item, ...user } : item));
     this.setUsers(updatedUsers);
     return updatedUsers.find((item) => item.id === userId);
   },
