@@ -127,7 +127,8 @@ function App() {
       className={[
         'app-shell',
         selectedTab === 'users' ? 'app-shell--users' : '',
-        selectedTab === 'matches' ? 'app-shell--likes' : ''
+        selectedTab === 'matches' ? 'app-shell--likes' : '',
+        selectedTab === 'settings' ? 'app-shell--settings' : ''
       ].filter(Boolean).join(' ')}
     >
       <header className="app-header">
@@ -135,7 +136,7 @@ function App() {
           <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
         </div>
         <div className="header-actions">
-          {selectedTab === 'users' && (
+          {(selectedTab === 'users' || selectedTab === 'settings') && (
             <button type="button" className="icon-button icon-button--search" aria-label="検索">
               <img src="/images/search.png" alt="" className="icon-button__image" />
             </button>
