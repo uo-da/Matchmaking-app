@@ -6,6 +6,7 @@ import SettingsPanel from './components/SettingsPanel';
 import TinderDeck from './components/TinderDeck';
 import MatchList from './components/MatchList';
 import MatchChat from './components/MatchChat';
+import Footer from './components/Footer';
 import authService from './services/authService';
 import storageService from './services/storageService';
 import chatService from './services/chatService';
@@ -53,12 +54,6 @@ function App() {
     setSelectedTab('users');
   };
 
-  const handleLogout = () => {
-    authService.logout();
-    setCurrentUser(null);
-    setSelectedMatchId(null);
-  };
-
   const handleAgeConfirm = (age) => {
     const updated = authService.verifyAge(currentUser, age);
     storageService.saveUserProfile(updated);
@@ -86,16 +81,12 @@ function App() {
     const updated = storageService.saveUserReaction(currentUser.id, targetId, isSuperLike);
     setCurrentUser(storageService.getUserById(updated.id));
     setRefreshToggle((value) => !value);
-    
+
     // マッチ成立処理
     const targetUser = storageService.getUserById(targetId);
     if (targetUser && targetUser.likedUserIds.includes(currentUser.id)) {
       setMatchModal(targetUser);
     }
-  };
-
-  const handleBoost = () => {
-    window.alert('Boostを使用しました。GitHubのログイン頻度が高いユーザを優先表示します。');
   };
 
   const handleSelectMatch = (matchId) => {
@@ -121,15 +112,19 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${selectedTab === 'users' ? 'app-shell--users' : ''}`}>
       <header className="app-header">
         <div className="header-brand">
           <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
         </div>
         <div className="header-actions">
-          <button type="button" className="icon-button" aria-label="通知">🔔</button>
-          <button type="button" className="icon-button" aria-label="設定" onClick={() => setSelectedTab('settings')}>
-            ⚙️
+          {selectedTab === 'users' && (
+            <button type="button" className="icon-button icon-button--search" aria-label="検索">
+              <img src="/images/search.png" alt="" className="icon-button__image" />
+            </button>
+          )}
+          <button type="button" className="icon-button icon-button--bell" aria-label="通知">
+            <img src="/images/bell.png" alt="" className="icon-button__image" />
           </button>
         </div>
       </header>
@@ -141,7 +136,6 @@ function App() {
             currentUser={currentUser}
             users={filteredUsers}
             onLike={handleLike}
-            onBoost={handleBoost}
           />
         )}
         {selectedTab === 'matches' && (
@@ -188,20 +182,7 @@ function App() {
           </div>
         </div>
       )}
-      <nav className="app-nav">
-        <button type="button" className={selectedTab === 'users' ? 'active' : ''} onClick={() => setSelectedTab('users')} aria-label="カード">
-          🔥
-        </button>
-        <button type="button" className={selectedTab === 'matches' ? 'active' : ''} onClick={() => setSelectedTab('matches')} aria-label="マッチ">
-          🧩
-        </button>
-        <button type="button" className={selectedTab === 'profile' ? 'active' : ''} onClick={() => setSelectedTab('profile')} aria-label="プロフィール">
-          �
-        </button>
-        <button type="button" className={selectedTab === 'settings' ? 'active' : ''} onClick={() => setSelectedTab('settings')} aria-label="設定">
-          ⚙️
-        </button>
-      </nav>
+      <Footer activeTab={selectedTab} onTabChange={setSelectedTab} />
     </div>
   );
 }

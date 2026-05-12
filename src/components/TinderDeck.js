@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 /**
- * @param {{ currentUser: Object, users: Object[], onLike: Function, onBoost: Function }} props
+ * @param {{ currentUser: Object, users: Object[], onLike: Function }} props
  */
-function TinderDeck({ currentUser, users, onLike, onBoost }) {
+function TinderDeck({ currentUser, users, onLike }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0 });
-  const [history, setHistory] = useState([]);
+  const [drag, setDrag] = useState({ active: false, startX: 0, offsetX: 0, source: null });
 
   const filteredUsers = useMemo(() => users, [users]);
   const currentUserCard = filteredUsers[currentIndex] || null;
@@ -21,11 +20,8 @@ function TinderDeck({ currentUser, users, onLike, onBoost }) {
   }, [filteredUsers.length, currentIndex]);
 
   const handleNext = () => {
-    if (currentUserCard) {
-      setHistory((prev) => [...prev, currentIndex]);
-    }
     setCurrentIndex((value) => Math.min(value + 1, filteredUsers.length));
-    setDrag({ active: false, startX: 0, offsetX: 0 });
+    setDrag({ active: false, startX: 0, offsetX: 0, source: null });
   };
 
   const handleSwipeAction = (targetId, isSuperLike = false) => {
@@ -36,37 +32,24 @@ function TinderDeck({ currentUser, users, onLike, onBoost }) {
     handleNext();
   };
 
-  const handleRewind = () => {
-    if (history.length === 0) {
+  const startDrag = (clientX, source) => {
+    setDrag({ active: true, startX: clientX, offsetX: 0, source });
+  };
+
+  const updateDrag = (clientX, source) => {
+    if (!drag.active || drag.source !== source) {
       return;
     }
-    const previousIndex = history[history.length - 1];
-    setHistory((prev) => prev.slice(0, -1));
-    setCurrentIndex(previousIndex);
-    setDrag({ active: false, startX: 0, offsetX: 0 });
+    setDrag((prev) => ({ ...prev, offsetX: clientX - prev.startX }));
   };
 
-  const handleBoost = () => {
-    if (onBoost) {
-      onBoost();
-    }
-  };
-
-  const onPointerDown = (event) => {
-    setDrag({ active: true, startX: event.clientX, offsetX: 0 });
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const onPointerMove = (event) => {
-    if (!drag.active) {
+  const finishDrag = (source) => {
+    if (drag.source !== source) {
       return;
     }
-    setDrag((prev) => ({ ...prev, offsetX: event.clientX - prev.startX }));
-  };
 
-  const onPointerUp = () => {
     if (!drag.active || !currentUserCard) {
-      setDrag({ active: false, startX: 0, offsetX: 0 });
+      setDrag({ active: false, startX: 0, offsetX: 0, source: null });
       return;
     }
 
@@ -76,11 +59,50 @@ function TinderDeck({ currentUser, users, onLike, onBoost }) {
     } else if (drag.offsetX < -threshold) {
       handleNext();
     } else {
-      setDrag({ active: false, startX: 0, offsetX: 0 });
+      setDrag({ active: false, startX: 0, offsetX: 0, source: null });
     }
   };
 
-  const nextUserCard = filteredUsers[currentIndex + 1] || null;
+  const onPointerDown = (event) => {
+    startDrag(event.clientX, 'pointer');
+    if (event.currentTarget.setPointerCapture) {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Ignore capture failures on some mobile browsers.
+      }
+    }
+  };
+
+  const onPointerMove = (event) => {
+    updateDrag(event.clientX, 'pointer');
+  };
+
+  const onPointerUp = () => {
+    finishDrag('pointer');
+  };
+
+  const onTouchStart = (event) => {
+    if (!event.touches || event.touches.length === 0) {
+      return;
+    }
+    startDrag(event.touches[0].clientX, 'touch');
+  };
+
+  const onTouchMove = (event) => {
+    if (!event.touches || event.touches.length === 0) {
+      return;
+    }
+    updateDrag(event.touches[0].clientX, 'touch');
+    if (drag.active && drag.source === 'touch') {
+      event.preventDefault();
+    }
+  };
+
+  const onTouchEnd = () => {
+    finishDrag('touch');
+  };
+
   const cardStyle = {
     transform: `translateX(${drag.offsetX}px) rotate(${drag.offsetX / 20}deg)`,
     transition: drag.active ? 'none' : 'transform 180ms ease',
@@ -88,51 +110,25 @@ function TinderDeck({ currentUser, users, onLike, onBoost }) {
 
   const swipeLabel = drag.offsetX > 30 ? 'LIKE' : drag.offsetX < -30 ? 'NOPE' : null;
   const swipeClass = drag.offsetX > 0 ? 'deck-card__label deck-card__label--like' : 'deck-card__label deck-card__label--nope';
-  const pageLabel = `${currentIndex + 1}/${filteredUsers.length}`;
 
   return (
-    <div className="deck-shell">
+    <div className="deck-shell deck-shell--vendor">
       {currentUserCard ? (
         <>
           <div className="deck-stack">
-            {nextUserCard && (
-              <div className="deck-card deck-card--peek" aria-hidden="true">
-                <div className="deck-card__hero">
-                  <img
-                    className="deck-card__photo"
-                    src={`https://github.com/${nextUserCard.githubUsername}.png?size=320`}
-                    alt={`${nextUserCard.displayName} の写真`}
-                    draggable="false"
-                    onDragStart={(event) => event.preventDefault()}
-                    onError={(event) => {
-                      event.currentTarget.src = 'https://via.placeholder.com/320?text=No+Image';
-                    }}
-                  />
-                  <div className="deck-card__hero-overlay" />
-                </div>
-                <div className="deck-card__info deck-card__info--peek">
-                  <h3 className="deck-card__name">{nextUserCard.displayName}, {nextUserCard.age}</h3>
-                  <p className="deck-card__detail">{nextUserCard.experienceYears}年の経験</p>
-                </div>
-              </div>
-            )}
             <div
-              className="deck-card deck-card--active"
+              className="deck-card deck-card--active deck-card--vendor"
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onPointerCancel={onPointerUp}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onTouchCancel={onTouchEnd}
               style={cardStyle}
             >
               <div className="deck-card__hero">
-                <div className="deck-card__topbar">
-                  {[...Array(6)].map((_, index) => (
-                    <span
-                      key={index}
-                      className={`deck-card__topbar-segment ${index === 0 ? 'deck-card__topbar-segment--active' : ''}`}
-                    />
-                  ))}
-                </div>
                 {swipeLabel && <div className={swipeClass}>{swipeLabel}</div>}
                 <img
                   className="deck-card__photo"
@@ -144,39 +140,33 @@ function TinderDeck({ currentUser, users, onLike, onBoost }) {
                     event.currentTarget.src = 'https://via.placeholder.com/320?text=No+Image';
                   }}
                 />
-                <div className="deck-card__hero-overlay" />
               </div>
               <div className="deck-card__info">
                 <div className="deck-card__meta">
                   <h3 className="deck-card__name">{currentUserCard.displayName}, {currentUserCard.age}</h3>
-                  {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
                 </div>
-                <p className="deck-card__detail">{currentUserCard.experienceYears}年の経験 / {currentUserCard.hobbies}</p>
+                <p className="deck-card__detail">
+                  {currentUserCard.bio || `${currentUserCard.experienceYears}年の経験があります。`}
+                </p>
                 <div className="deck-card__tags">
-                  {currentUserCard.stackTags.map((tag) => (
+                  {currentUserCard.stackTags.slice(0, 3).map((tag) => (
                     <span key={tag} className="deck-card__tag">{tag}</span>
                   ))}
                 </div>
-                <p className="deck-card__bio">{currentUserCard.bio}</p>
-                <div className="deck-card__actions">
-                  <button type="button" className="deck-action-btn deck-action-btn--rewind" title="やり直し" onClick={handleRewind}>
-                    ⟲
-                  </button>
-                  <button type="button" className="deck-action-btn deck-action-btn--nope" title="NOPE" onClick={handleNext}>
-                    ✕
-                  </button>
-                  <button type="button" className="deck-action-btn deck-action-btn--superlike" title="スーパーライク" onClick={() => handleSwipeAction(currentUserCard.id, true)}>
-                    ★
-                  </button>
-                  <button type="button" className="deck-action-btn deck-action-btn--like" title="LIKE" onClick={() => handleSwipeAction(currentUserCard.id)}>
-                    ♥
-                  </button>
-                  <button type="button" className="deck-action-btn deck-action-btn--boost" title="Boost" onClick={handleBoost}>
-                    ⚡
-                  </button>
-                </div>
+                {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
               </div>
             </div>
+          </div>
+          <div className="deck-card__actions">
+            <button type="button" className="deck-action-btn deck-action-btn--nope" title="NOPE" onClick={handleNext}>
+              ✕
+            </button>
+            <button type="button" className="deck-action-btn deck-action-btn--superlike" title="スーパーライク" onClick={() => handleSwipeAction(currentUserCard.id, true)}>
+              ★
+            </button>
+            <button type="button" className="deck-action-btn deck-action-btn--like" title="LIKE" onClick={() => handleSwipeAction(currentUserCard.id)}>
+              ♥
+            </button>
           </div>
         </>
       ) : (
