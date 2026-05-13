@@ -1,0 +1,139 @@
+/**
+ * Footer Navigation Styles
+ * Responsive design for mobile and desktop screens
+ */
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 16px;
+  height: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+}
+
+.footer-nav {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 90%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 10px 20px;
+  list-style: none;
+  height: 70px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 50px;
+  overflow: hidden;
+}
+
+.footer-nav-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  flex: 1;
+  height: 100%;
+  transition: all 0.3s ease;
+  opacity: 0.6;
+  border-radius: 999px;
+}
+
+.footer-nav-btn:hover {
+  opacity: 0.8;
+}
+
+.footer-nav-btn.active {
+  opacity: 1;
+  background-color: rgba(74, 144, 226, 0.1);
+}
+
+.footer-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.footer-nav-btn.active .footer-icon {
+  transform: scale(1.1);
+}
+
+/* Tablet styles (768px and above) */
+@media (min-width: 768px) {
+  .footer-nav {
+    max-width: 700px;
+    padding: 12px 24px;
+  }
+
+  .footer-nav-btn {
+    padding: 10px;
+  }
+
+  .footer-icon {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* Mobile styles (below 768px) */
+@media (max-width: 767px) {
+  .footer {
+    height: auto;
+  }
+
+  .footer-nav {
+    height: 60px;
+    padding: 8px 8px;
+  }
+
+  .footer-nav-btn {
+    padding: 6px;
+  }
+
+  .footer-icon {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Small mobile styles (below 480px) */
+@media (max-width: 479px) {
+  .footer-nav {
+    height: 56px;
+    padding: 6px 6px;
+  }
+
+  .footer-nav-btn {
+    padding: 4px;
+  }
+
+  .footer-icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* Accessibility: Focus styles for keyboard navigation */
+.footer-nav-btn:focus {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.footer-nav-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.footer-nav-btn:focus-visible {
+  outline: 2px solid #4a90e2;
+  outline-offset: 2px;
+}

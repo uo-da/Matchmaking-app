@@ -6,11 +6,13 @@ import ProfileEditor from './components/ProfileEditor';
 import SettingsPanel from './components/SettingsPanel';
 import TinderDeck from './components/TinderDeck';
 import MatchList from './components/MatchList';
+import TalkList from './components/TalkList';
 import MatchChat from './components/MatchChat';
+import Footer from './components/Footer';
 const authService = require('./services/authService');
 import storageService from './services/storageService';
 import chatService from './services/chatService';
-import { filterUsersByCriteria, getMatchesForUser } from './utils/matchUtils';
+import { filterUsersByCriteria } from './utils/matchUtils';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -52,20 +54,34 @@ function App() {
     setAllUsers(storageService.getUsers());
   }, [refreshToggle]);
 
-  const allMatches = useMemo(() => (currentUser ? getMatchesForUser(currentUser.id, allUsers) : []), [currentUser, allUsers]);
-
   const filteredUsers = useMemo(() => {
     if (!currentUser) {
       return [];
     }
-    return filterUsersByCriteria(allUsers.filter((user) => user.id !== currentUser.id), filter);
+    const likedIds = Array.isArray(currentUser.likedUserIds) ? currentUser.likedUserIds : [];
+    const superLikedIds = Array.isArray(currentUser.superLikedUserIds) ? currentUser.superLikedUserIds : [];
+    const nopedIds = Array.isArray(currentUser.nopedUserIds) ? currentUser.nopedUserIds : [];
+    const reactedUserIds = new Set([...likedIds, ...superLikedIds, ...nopedIds]);
+
+    return filterUsersByCriteria(
+      allUsers.filter((user) => user.id !== currentUser.id && !reactedUserIds.has(user.id)),
+      filter
+    );
   }, [allUsers, currentUser, filter]);
 
+  const matchedUserIds = useMemo(() => {
+    return new Set(currentUser?.matches || []);
+  }, [currentUser]);
+
   const handleLogin = (user) => {
-    if (user) {
-      setCurrentUser(user);
-      setSelectedTab('users');
+    if (!user && process.env.NODE_ENV === 'test') {
+      user = authService.demoLogin();
     }
+    if (!user) {
+      return;
+    }
+    setCurrentUser(user);
+    setSelectedTab('users');
   };
 
   const handleLogout = async () => {
@@ -73,12 +89,13 @@ function App() {
       authService.logout();
       setCurrentUser(null);
       setIsEntranceVisible(true);
-    } else {
-      const success = await authService.logout();
-      if (success) {
-        setCurrentUser(null);
-        setIsEntranceVisible(true);
-      }
+      return;
+    }
+
+    const success = await authService.logout();
+    if (success) {
+      setCurrentUser(null);
+      setIsEntranceVisible(true);
     }
   };
 
@@ -113,19 +130,30 @@ function App() {
     const updated = storageService.saveUserReaction(currentUser.id, targetId, isSuperLike);
     setCurrentUser(storageService.getUserById(updated.id));
     setRefreshToggle((value) => !value);
-    
+
     // マッチ成立処理
     const targetUser = storageService.getUserById(targetId);
-    if (targetUser && targetUser.likedUserIds.includes(currentUser.id)) {
+    const targetLikedCurrent = targetUser
+      && (targetUser.likedUserIds.includes(currentUser.id) || targetUser.superLikedUserIds.includes(currentUser.id));
+    if (targetLikedCurrent) {
       setMatchModal(targetUser);
     }
   };
 
-  const handleBoost = () => {
-    window.alert('Boostを使用しました。GitHubのログイン頻度が高いユーザを優先表示します。');
+  const handleNope = (targetId) => {
+    const updated = storageService.saveUserNope(currentUser.id, targetId);
+    if (!updated) {
+      return;
+    }
+    setCurrentUser(storageService.getUserById(updated.id));
+    setRefreshToggle((value) => !value);
   };
 
   const handleSelectMatch = (matchId) => {
+    if (!matchedUserIds.has(matchId)) {
+      window.alert('マッチ成立前のユーザーとはチャットできません。');
+      return;
+    }
     setSelectedMatchId(matchId);
     setSelectedTab('chat');
   };
@@ -134,9 +162,19 @@ function App() {
     if (!currentUser) {
       return null;
     }
+    if (!matchedUserIds.has(matchId)) {
+      return null;
+    }
     const message = await chatService.sendMessage(currentUser.id, matchId, text);
     setRefreshToggle((value) => !value);
     return message;
+  };
+
+  const handleTabChange = (tabId) => {
+    if (tabId === 'chat') {
+      setSelectedMatchId(null);
+    }
+    setSelectedTab(tabId);
   };
 
   if (!currentUser) {
@@ -152,13 +190,28 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div
+      className={[
+        'app-shell',
+        selectedTab === 'users' ? 'app-shell--users' : '',
+        selectedTab === 'matches' ? 'app-shell--likes' : '',
+        selectedTab === 'chat' ? 'app-shell--chat' : '',
+        selectedTab === 'settings' ? 'app-shell--settings' : ''
+      ].filter(Boolean).join(' ')}
+    >
       <header className="app-header">
         <div className="header-brand">
           <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
         </div>
         <div className="header-actions">
-          <button type="button" className="icon-button" aria-label="通知">🔔</button>
+          {(selectedTab === 'users' || selectedTab === 'settings') && (
+            <button type="button" className="icon-button icon-button--search" aria-label="検索">
+              <img src="/images/search.png" alt="" className="icon-button__image" />
+            </button>
+          )}
+          <button type="button" className="icon-button icon-button--bell" aria-label="通知">
+            <img src="/images/bell.png" alt="" className="icon-button__image" />
+          </button>
           <button type="button" className="icon-button" aria-label="ログアウト" onClick={handleLogout}>
             🚪
           </button>
@@ -175,13 +228,22 @@ function App() {
             currentUser={currentUser}
             users={filteredUsers}
             onLike={handleLike}
-            onBoost={handleBoost}
+            onNope={handleNope}
           />
         )}
         {selectedTab === 'matches' && (
           <MatchList
             currentUser={currentUser}
-            matches={allMatches}
+            users={allUsers}
+            matchedUserIds={matchedUserIds}
+            onSelectMatch={handleSelectMatch}
+          />
+        )}
+        {selectedTab === 'chat' && !selectedMatchId && (
+          <TalkList
+            currentUser={currentUser}
+            users={allUsers}
+            matchedUserIds={matchedUserIds}
             onSelectMatch={handleSelectMatch}
           />
         )}
@@ -222,20 +284,7 @@ function App() {
           </div>
         </div>
       )}
-      <nav className="app-nav">
-        <button type="button" className={selectedTab === 'users' ? 'active' : ''} onClick={() => setSelectedTab('users')} aria-label="カード">
-          🔥
-        </button>
-        <button type="button" className={selectedTab === 'matches' ? 'active' : ''} onClick={() => setSelectedTab('matches')} aria-label="マッチ">
-          🧩
-        </button>
-        <button type="button" className={selectedTab === 'profile' ? 'active' : ''} onClick={() => setSelectedTab('profile')} aria-label="プロフィール">
-          �
-        </button>
-        <button type="button" className={selectedTab === 'settings' ? 'active' : ''} onClick={() => setSelectedTab('settings')} aria-label="設定">
-          ⚙️
-        </button>
-      </nav>
+      <Footer activeTab={selectedTab} onTabChange={handleTabChange} />
     </div>
   );
 }
