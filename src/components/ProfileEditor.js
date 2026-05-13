@@ -9,7 +9,7 @@ function ProfileEditor({ user, onSave }) {
   const [profile, setProfile] = useState({
     displayName: user.displayName || '',
     bio: user.bio || '',
-    stackTags: user.stackTags.join(', ') || '',
+    stackTags: (user.stackTags || []).join(', '),
     experienceYears: user.experienceYears || 0,
     hobbies: user.hobbies || '',
     githubUsername: user.githubUsername || ''
@@ -23,7 +23,7 @@ function ProfileEditor({ user, onSave }) {
   };
 
   const handleTagClick = (tag) => {
-    const tags = profile.stackTags
+    const tags = (profile.stackTags || '')
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
@@ -52,7 +52,7 @@ function ProfileEditor({ user, onSave }) {
     onSave({
       displayName: profile.displayName.trim() || user.displayName,
       bio: profile.bio.trim(),
-      stackTags: profile.stackTags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      stackTags: (profile.stackTags || '').split(',').map((tag) => tag.trim()).filter(Boolean),
       experienceYears: Number(profile.experienceYears) || 0,
       hobbies: profile.hobbies.trim(),
       githubUsername: profile.githubUsername.trim() || user.githubUsername
@@ -82,7 +82,7 @@ function ProfileEditor({ user, onSave }) {
               <button
                 key={tag}
                 type="button"
-                className={`small-button ${profile.stackTags.split(',').map((item) => item.trim()).includes(tag) ? 'active-tag' : ''}`}
+                className={`small-button ${((profile.stackTags || '').split(',').map((item) => item.trim()).includes(tag) ? 'active-tag' : '')}`}
                 onClick={() => handleTagClick(tag)}
               >
                 {tag}

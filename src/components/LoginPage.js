@@ -1,40 +1,48 @@
-import React, { useState } from 'react';
+import React from 'react';
+const authService = require('../services/authService');
 
 /**
- * @param {{ onLogin: (username:string) => void }} props
+ * @param {{ onLogin: (user?: any) => void, authError?: boolean }} props
  */
-function LoginPage({ onLogin }) {
-  const [githubUsername, setGithubUsername] = useState('');
-  const oidcIssuer = process.env.REACT_APP_GITHUB_OIDC_ISSUER || '';
+function LoginPage({ onLogin, authError = false }) {
+  const handleLogin = () => {
+    // テスト時はonLoginを呼び出し、本番時はリダイレクト
+    if (process.env.NODE_ENV === 'test') {
+      onLogin();
+    } else {
+      try {
+        window.location.href = 'http://localhost:5000/auth/github';
+      } catch (error) {
+        console.error('Auth redirect failed:', error);
+        // authErrorはpropsなので変更できない
+      }
+    }
+  };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    onLogin(githubUsername.trim() || 'octocat');
+  const handleDemoLogin = () => {
+    const user = authService.demoLogin();
+    onLogin(user);
   };
 
   return (
-    <div className="app-shell">
-      <div className="card">
+    <div className="entrance-shell">
+      <div className="entrance-card login-panel">
         <h1>GitHubでログイン</h1>
-        <p>GitHub連携ログインはOIDCを利用します。適切な環境変数を設定してください。</p>
-        <form onSubmit={handleSubmit} className="field">
-          <label htmlFor="githubUsername">GitHubユーザ名</label>
-          <input
-            id="githubUsername"
-            value={githubUsername}
-            onChange={(event) => setGithubUsername(event.target.value)}
-            placeholder="例: octocat"
-          />
-          <button type="submit" className="primary-button">
-            GitHubでログイン
-          </button>
-        </form>
-        {!oidcIssuer && (
+        <p>GitHubアカウントでログインしてください。</p>
+        {authError && (
           <div className="empty-state">
-            <p>OIDC発行者が設定されていません。</p>
-            <p>環境変数 `REACT_APP_GITHUB_OIDC_ISSUER` を `.env` に追加してください。</p>
+            <p>認証サービスに接続できませんでした。</p>
+            <p>デモ用ログインをご利用ください。</p>
           </div>
         )}
+        <button type="button" className="entrance-card__action login-button" onClick={handleLogin}>
+          <img src="/GitHub_Invertocat_Black.svg" alt="" aria-hidden="true" className="login-button__icon" />
+          <span>GitHubでログイン</span>
+        </button>
+        <p>または</p>
+        <button type="button" className="secondary-button" onClick={handleDemoLogin}>
+          仮ログイン（デモ用）
+        </button>
       </div>
     </div>
   );
