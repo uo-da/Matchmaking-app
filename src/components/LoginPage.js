@@ -11,7 +11,7 @@ function LoginPage({ onLogin, authError = false }) {
       onLogin();
     } else {
       try {
-        window.location.href = 'http://localhost:5000/auth/github';
+        window.location.href = '/auth/github';
       } catch (error) {
         console.error('Auth redirect failed:', error);
         // authErrorはpropsなので変更できない
@@ -19,9 +19,11 @@ function LoginPage({ onLogin, authError = false }) {
     }
   };
 
-  const handleDemoLogin = () => {
-    const user = authService.demoLogin();
-    onLogin(user);
+  const handleDemoLogin = async () => {
+    const user = await authService.demoLogin();
+    if (user) {
+      onLogin(user);
+    }
   };
 
   return (

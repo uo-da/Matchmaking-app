@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import chatService from '../services/chatService';
 import storageService from '../services/storageService';
 
@@ -8,7 +8,17 @@ import storageService from '../services/storageService';
 function MatchChat({ matchId, currentUser, onSend }) {
   const [text, setText] = useState('');
   const [messages, setMessages] = useState([]);
-  const matchUser = useMemo(() => storageService.getUserById(matchId), [matchId]);
+  const [matchUser, setMatchUser] = useState(null);
+
+  useEffect(() => {
+    const fetchMatchUser = async () => {
+      const user = await storageService.getUserById(matchId);
+      setMatchUser(user);
+    };
+    if (matchId) {
+      fetchMatchUser();
+    }
+  }, [matchId]);
 
   useEffect(() => {
     const fetchMessages = async () => {

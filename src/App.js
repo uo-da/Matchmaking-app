@@ -45,13 +45,27 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && process.env.NODE_ENV === 'test') {
       storageService.saveCurrentSession(currentUser);
     }
   }, [currentUser]);
 
   useEffect(() => {
-    setAllUsers(storageService.getUsers());
+    const loadUsers = async () => {
+      try {
+        const users = await storageService.getUsers();
+        setAllUsers(users);
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        setAllUsers([]);
+      }
+    };
+
+    if (process.env.NODE_ENV === 'test') {
+      setAllUsers(storageService.getUsers());
+    } else {
+      loadUsers();
+    }
   }, [refreshToggle]);
 
   const filteredUsers = useMemo(() => {
@@ -99,26 +113,36 @@ function App() {
     }
   };
 
-  const handleAgeConfirm = (age) => {
+  const handleAgeConfirm = async (age) => {
     if (!currentUser) {
       console.error('No current user for age verification');
       return;
     }
-    const updated = authService.verifyAge(currentUser, age);
-    storageService.saveUserProfile(updated);
-    setCurrentUser(updated);
-    // 年齢確認後にプロフィールが不完全ならプロフィール編集を強制
-    if (!isProfileComplete(updated)) {
-      setSelectedTab('profile');
+    try {
+      const updated = authService.verifyAge(currentUser, age);
+      const saved = await storageService.saveUserProfile(updated);
+      setCurrentUser(saved);
+      // 年齢確認後にプロフィールが不完全ならプロフィール編集を強制
+      if (!isProfileComplete(saved)) {
+        setSelectedTab('profile');
+      }
+    } catch (error) {
+      console.error('Failed to confirm age:', error);
+      window.alert('サーバーとの通信に失敗しました。しばらくしてからもう一度お試しください。');
     }
   };
 
-  const handleProfileSave = (profile) => {
-    const updated = storageService.saveUserProfile({ ...currentUser, ...profile });
-    setCurrentUser(updated);
-    // プロフィールが完全になったらusersタブに戻る
-    if (isProfileComplete(updated)) {
-      setSelectedTab('users');
+  const handleProfileSave = async (profile) => {
+    try {
+      const updated = await storageService.saveUserProfile({ ...currentUser, ...profile });
+      setCurrentUser(updated);
+      // プロフィールが完全になったらusersタブに戻る
+      if (isProfileComplete(updated)) {
+        setSelectedTab('users');
+      }
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      window.alert('プロフィールの保存に失敗しました。');
     }
   };
 
@@ -126,13 +150,15 @@ function App() {
     return user.stackTags && user.stackTags.length > 0 && user.experienceYears > 0;
   };
 
-  const handleLike = (targetId, isSuperLike = false) => {
-    const updated = storageService.saveUserReaction(currentUser.id, targetId, isSuperLike);
-    setCurrentUser(storageService.getUserById(updated.id));
+  const handleLike = async (targetId, isSuperLike = false) => {
+    const updated = await storageService.saveUserReaction(currentUser.id, targetId, isSuperLike);
+    if (!updated) {
+      return;
+    }
+    setCurrentUser(updated);
     setRefreshToggle((value) => !value);
 
-    // マッチ成立処理
-    const targetUser = storageService.getUserById(targetId);
+    const targetUser = await storageService.getUserById(targetId);
     const targetLikedCurrent = targetUser
       && (targetUser.likedUserIds.includes(currentUser.id) || targetUser.superLikedUserIds.includes(currentUser.id));
     if (targetLikedCurrent) {
@@ -140,12 +166,12 @@ function App() {
     }
   };
 
-  const handleNope = (targetId) => {
-    const updated = storageService.saveUserNope(currentUser.id, targetId);
+  const handleNope = async (targetId) => {
+    const updated = await storageService.saveUserNope(currentUser.id, targetId);
     if (!updated) {
       return;
     }
-    setCurrentUser(storageService.getUserById(updated.id));
+    setCurrentUser(updated);
     setRefreshToggle((value) => !value);
   };
 
