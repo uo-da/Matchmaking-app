@@ -9,7 +9,7 @@ import MatchList from './components/MatchList';
 import TalkList from './components/TalkList';
 import MatchChat from './components/MatchChat';
 import Footer from './components/Footer';
-const authService = require('./services/authService');
+import authService from './services/authService';
 import storageService from './services/storageService';
 import chatService from './services/chatService';
 import { filterUsersByCriteria } from './utils/matchUtils';
@@ -82,21 +82,6 @@ function App() {
     }
     setCurrentUser(user);
     setSelectedTab('users');
-  };
-
-  const handleLogout = async () => {
-    if (process.env.NODE_ENV === 'test') {
-      authService.logout();
-      setCurrentUser(null);
-      setIsEntranceVisible(true);
-      return;
-    }
-
-    const success = await authService.logout();
-    if (success) {
-      setCurrentUser(null);
-      setIsEntranceVisible(true);
-    }
   };
 
   const handleAgeConfirm = (age) => {
@@ -211,12 +196,6 @@ function App() {
           )}
           <button type="button" className="icon-button icon-button--bell" aria-label="通知">
             <img src="/images/bell.png" alt="" className="icon-button__image" />
-          </button>
-          <button type="button" className="icon-button" aria-label="ログアウト" onClick={handleLogout}>
-            🚪
-          </button>
-          <button type="button" className="icon-button" aria-label="設定" onClick={() => setSelectedTab('settings')}>
-            ⚙️
           </button>
         </div>
       </header>
