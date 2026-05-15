@@ -1,31 +1,64 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AgeVerification from './components/AgeVerification';
+import EntrancePage from './components/EntrancePage';
 import LoginPage from './components/LoginPage';
 import ProfileEditor from './components/ProfileEditor';
 import SettingsPanel from './components/SettingsPanel';
 import TinderDeck from './components/TinderDeck';
 import MatchList from './components/MatchList';
+import TalkList from './components/TalkList';
 import MatchChat from './components/MatchChat';
+import Footer from './components/Footer';
 import authService from './services/authService';
 import storageService from './services/storageService';
 import chatService from './services/chatService';
-import { filterUsersByCriteria, getMatchesForUser } from './utils/matchUtils';
+import { filterUsersByCriteria } from './utils/matchUtils';
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isEntranceVisible, setIsEntranceVisible] = useState(true);
+  const [authError, setAuthError] = useState(false);
   const [selectedTab, setSelectedTab] = useState('users');
-  const [filter, setFilter] = useState({ stackTag: '', minYears: 0 });
+  const [filter, setFilter] = useState({
+    query: '',
+    stackTag: '',
+    stackTags: [],
+    minYears: 0,
+    minAge: 18,
+    maxAge: 80,
+    genders: ['女性', '男性'],
+    excludeScoutNg: true
+  });
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const [refreshToggle, setRefreshToggle] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [matchModal, setMatchModal] = useState(null);
 
   useEffect(() => {
-    storageService.seedSampleData();
-    chatService.seedSampleMessages();
-    const saved = authService.getCurrentSession();
-    setCurrentUser(saved);
-    setAllUsers(storageService.getUsers());
+    const initializeData = async () => {
+      storageService.seedSampleData();
+      await chatService.seedSampleMessages();
+      const users = await storageService.getUsers();
+      setAllUsers(users);
+    };
+
+    const loadSession = async () => {
+      try {
+        const saved = await authService.getCurrentSession();
+        setCurrentUser(saved);
+        setAuthError(false);
+      } catch (error) {
+        console.error('Failed to load session:', error);
+        setAuthError(true);
+      }
+    };
+    if (process.env.NODE_ENV === 'test') {
+      const saved = authService.getCurrentSession();
+      setCurrentUser(saved);
+    } else {
+      loadSession();
+    }
+    initializeData();
   }, []);
 
   useEffect(() => {
@@ -35,46 +68,83 @@ function App() {
   }, [currentUser]);
 
   useEffect(() => {
-    setAllUsers(storageService.getUsers());
-  }, [refreshToggle]);
+    const loadUsers = async () => {
+      try {
+        const users = await storageService.getUsers();
+        setAllUsers(users);
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        setAllUsers([]);
+      }
+    };
 
-  const allMatches = useMemo(() => (currentUser ? getMatchesForUser(currentUser.id, allUsers) : []), [currentUser, allUsers]);
+    if (process.env.NODE_ENV === 'test') {
+      setAllUsers(storageService.getUsers());
+    } else {
+      loadUsers();
+    }
+  }, [refreshToggle]);
 
   const filteredUsers = useMemo(() => {
     if (!currentUser) {
       return [];
     }
-    return filterUsersByCriteria(allUsers.filter((user) => user.id !== currentUser.id), filter);
+    const likedIds = Array.isArray(currentUser.likedUserIds) ? currentUser.likedUserIds : [];
+    const superLikedIds = Array.isArray(currentUser.superLikedUserIds) ? currentUser.superLikedUserIds : [];
+    const nopedIds = Array.isArray(currentUser.nopedUserIds) ? currentUser.nopedUserIds : [];
+    const reactedUserIds = new Set([...likedIds, ...superLikedIds, ...nopedIds]);
+
+    return filterUsersByCriteria(
+      allUsers.filter((user) => user.id !== currentUser.id && !reactedUserIds.has(user.id)),
+      filter
+    );
   }, [allUsers, currentUser, filter]);
 
-  const handleLogin = (username) => {
-    const user = authService.loginWithGitHub(username);
+  const matchedUserIds = useMemo(() => {
+    return new Set(currentUser?.matches || []);
+  }, [currentUser]);
+
+  const handleLogin = (user) => {
+    if (!user && process.env.NODE_ENV === 'test') {
+      user = authService.demoLogin();
+    }
+    if (!user) {
+      return;
+    }
     setCurrentUser(user);
     setSelectedTab('users');
   };
 
-  const handleLogout = () => {
-    authService.logout();
-    setCurrentUser(null);
-    setSelectedMatchId(null);
-  };
-
-  const handleAgeConfirm = (age) => {
-    const updated = authService.verifyAge(currentUser, age);
-    storageService.saveUserProfile(updated);
-    setCurrentUser(updated);
-    // 年齢確認後にプロフィールが不完全ならプロフィール編集を強制
-    if (!isProfileComplete(updated)) {
-      setSelectedTab('profile');
+  const handleAgeConfirm = async (age) => {
+    if (!currentUser) {
+      console.error('No current user for age verification');
+      return;
+    }
+    try {
+      const updated = authService.verifyAge(currentUser, age);
+      const saved = await storageService.saveUserProfile(updated);
+      setCurrentUser(saved);
+      // 年齢確認後にプロフィールが不完全ならプロフィール編集を強制
+      if (!isProfileComplete(saved)) {
+        setSelectedTab('profile');
+      }
+    } catch (error) {
+      console.error('Failed to confirm age:', error);
+      window.alert('サーバーとの通信に失敗しました。しばらくしてからもう一度お試しください。');
     }
   };
 
-  const handleProfileSave = (profile) => {
-    const updated = storageService.saveUserProfile({ ...currentUser, ...profile });
-    setCurrentUser(updated);
-    // プロフィールが完全になったらusersタブに戻る
-    if (isProfileComplete(updated)) {
-      setSelectedTab('users');
+  const handleProfileSave = async (profile) => {
+    try {
+      const updated = await storageService.saveUserProfile({ ...currentUser, ...profile });
+      setCurrentUser(updated);
+      // プロフィールが完全になったらusersタブに戻る
+      if (isProfileComplete(updated)) {
+        setSelectedTab('users');
+      }
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      window.alert('プロフィールの保存に失敗しました。');
     }
   };
 
@@ -82,23 +152,46 @@ function App() {
     return user.stackTags && user.stackTags.length > 0 && user.experienceYears > 0;
   };
 
-  const handleLike = (targetId, isSuperLike = false) => {
-    const updated = storageService.saveUserReaction(currentUser.id, targetId, isSuperLike);
-    setCurrentUser(storageService.getUserById(updated.id));
+  const handleLike = async (targetId, isSuperLike = false) => {
+    if (!currentUser?.id || !targetId) {
+      return;
+    }
+    const updated = await storageService.saveUserReaction(currentUser.id, targetId, isSuperLike);
+    if (!updated) {
+      setRefreshToggle((value) => !value);
+      return;
+    }
+    const refreshedUser = await storageService.getUserById(updated.id);
+    setCurrentUser(refreshedUser || updated);
     setRefreshToggle((value) => !value);
-    
-    // マッチ成立処理
-    const targetUser = storageService.getUserById(targetId);
-    if (targetUser && targetUser.likedUserIds.includes(currentUser.id)) {
+
+    const targetUser = await storageService.getUserById(targetId);
+    const targetLikedCurrent = targetUser
+      && ((targetUser.likedUserIds || []).includes(currentUser.id) || (targetUser.superLikedUserIds || []).includes(currentUser.id));
+    if (targetLikedCurrent) {
       setMatchModal(targetUser);
     }
   };
 
-  const handleBoost = () => {
-    window.alert('Boostを使用しました。GitHubのログイン頻度が高いユーザを優先表示します。');
+  const handleNope = async (targetId) => {
+    if (!currentUser?.id || !targetId) {
+      return;
+    }
+    const updated = await storageService.saveUserNope(currentUser.id, targetId);
+    if (!updated) {
+      setRefreshToggle((value) => !value);
+      return;
+    }
+    const refreshedUser = await storageService.getUserById(updated.id);
+    setCurrentUser(refreshedUser || updated);
+    setRefreshToggle((value) => !value);
   };
 
   const handleSelectMatch = (matchId) => {
+    if (!matchedUserIds.has(matchId)) {
+      window.alert('マッチ成立前のユーザーとはチャットできません。');
+      return;
+    }
     setSelectedMatchId(matchId);
     setSelectedTab('chat');
   };
@@ -107,13 +200,27 @@ function App() {
     if (!currentUser) {
       return null;
     }
+    if (!matchedUserIds.has(matchId)) {
+      return null;
+    }
     const message = await chatService.sendMessage(currentUser.id, matchId, text);
     setRefreshToggle((value) => !value);
     return message;
   };
 
+  const handleTabChange = (tabId) => {
+    if (tabId === 'chat') {
+      setSelectedMatchId(null);
+    }
+    setSelectedTab(tabId);
+  };
+
   if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} />;
+    if (isEntranceVisible) {
+      return <EntrancePage onEnter={() => setIsEntranceVisible(false)} />;
+    }
+
+    return <LoginPage onLogin={handleLogin} authError={authError} />;
   }
 
   if (!currentUser.ageVerified) {
@@ -121,15 +228,27 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div
+      className={[
+        'app-shell',
+        selectedTab === 'users' ? 'app-shell--users' : '',
+        selectedTab === 'matches' ? 'app-shell--likes' : '',
+        selectedTab === 'chat' ? 'app-shell--chat' : '',
+        selectedTab === 'settings' ? 'app-shell--settings' : ''
+      ].filter(Boolean).join(' ')}
+    >
       <header className="app-header">
         <div className="header-brand">
           <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
         </div>
         <div className="header-actions">
-          <button type="button" className="icon-button" aria-label="通知">🔔</button>
-          <button type="button" className="icon-button" aria-label="設定" onClick={() => setSelectedTab('settings')}>
-            ⚙️
+          {selectedTab === 'users' && (
+            <button type="button" className="icon-button icon-button--search" aria-label="検索">
+              <img src="/images/search.png" alt="" className="icon-button__image" />
+            </button>
+          )}
+          <button type="button" className="icon-button icon-button--bell" aria-label="通知">
+            <img src="/images/bell.png" alt="" className="icon-button__image" />
           </button>
         </div>
       </header>
@@ -141,13 +260,22 @@ function App() {
             currentUser={currentUser}
             users={filteredUsers}
             onLike={handleLike}
-            onBoost={handleBoost}
+            onNope={handleNope}
           />
         )}
         {selectedTab === 'matches' && (
           <MatchList
             currentUser={currentUser}
-            matches={allMatches}
+            users={allUsers}
+            matchedUserIds={matchedUserIds}
+            onSelectMatch={handleSelectMatch}
+          />
+        )}
+        {selectedTab === 'chat' && !selectedMatchId && (
+          <TalkList
+            currentUser={currentUser}
+            users={allUsers}
+            matchedUserIds={matchedUserIds}
             onSelectMatch={handleSelectMatch}
           />
         )}
@@ -188,20 +316,7 @@ function App() {
           </div>
         </div>
       )}
-      <nav className="app-nav">
-        <button type="button" className={selectedTab === 'users' ? 'active' : ''} onClick={() => setSelectedTab('users')} aria-label="カード">
-          🔥
-        </button>
-        <button type="button" className={selectedTab === 'matches' ? 'active' : ''} onClick={() => setSelectedTab('matches')} aria-label="マッチ">
-          🧩
-        </button>
-        <button type="button" className={selectedTab === 'profile' ? 'active' : ''} onClick={() => setSelectedTab('profile')} aria-label="プロフィール">
-          �
-        </button>
-        <button type="button" className={selectedTab === 'settings' ? 'active' : ''} onClick={() => setSelectedTab('settings')} aria-label="設定">
-          ⚙️
-        </button>
-      </nav>
+      <Footer activeTab={selectedTab} onTabChange={handleTabChange} />
     </div>
   );
 }

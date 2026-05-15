@@ -19,13 +19,29 @@
 npm install
 ```
 
-2. 開発サーバーを起動
+2. 環境変数を設定
+
+`.env` ファイルを編集し、GitHub OAuthアプリのClient IDとSecretを設定してください。
+
+```text
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+SESSION_SECRET=your-session-secret
+```
+
+3. バックエンドサーバーを起動
+
+```bash
+npm run server
+```
+
+4. フロントエンド開発サーバーを起動（別ターミナル）
 
 ```bash
 npm start
 ```
 
-3. テストを実行
+5. テストを実行
 
 ```bash
 npm test

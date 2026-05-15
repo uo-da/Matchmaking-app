@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "passport": "^0.6.0",
+    "passport-github2": "^0.1.12",
+    "sqlite3": "^5.1.6",
+    "ws": "^8.13.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-scripts": "5.0.1"
@@ -15,14 +22,19 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "server": "node server.js",
     "build": "react-scripts build",
     "test": "react-scripts test --watchAll=false --passWithNoTests",
     "eject": "react-scripts eject"
   },
+  "proxy": "http://localhost:5000",
   "jest": {
     "testMatch": [
       "<rootDir>/tests/**/*.{js,jsx,ts,tsx}",
       "<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(@testing-library|react-scripts)/)"
     ]
   },
   "eslintConfig": {
