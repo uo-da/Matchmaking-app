@@ -23,11 +23,11 @@ function AgeVerification({ onConfirm }) {
   };
 
   return (
-    <div className="app-shell">
-      <div className="card">
+    <div className="entrance-shell">
+      <div className="entrance-card login-panel age-verification-panel">
         <h1>年齢確認</h1>
-        <p>18歳以上のみ登録できます。</p>
-        <form onSubmit={handleSubmit} className="field">
+        <p>18歳以上のみ登録できます。年齢を入力して次へ進んでください。</p>
+        <form onSubmit={handleSubmit} className="field age-verification-form">
           <label htmlFor="age">年齢</label>
           <input
             id="age"
@@ -36,8 +36,8 @@ function AgeVerification({ onConfirm }) {
             onChange={(event) => setAge(event.target.value)}
             placeholder="年齢を入力"
           />
-          {error && <div className="badge">{error}</div>}
-          <button type="submit" className="primary-button">
+          {error && <div className="badge badge--error">{error}</div>}
+          <button type="submit" className="entrance-card__action">
             確認して次へ
           </button>
         </form>
