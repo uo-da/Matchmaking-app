@@ -19,9 +19,16 @@ const sampleUsers = [
   {
     id: 'user-1',
     githubUsername: 'octocat',
+    photoUrls: [
+      'https://picsum.photos/seed/user-1-1/800/1200',
+      'https://picsum.photos/seed/user-1-2/800/1200',
+      'https://picsum.photos/seed/user-1-3/800/1200'
+    ],
     displayName: 'Nao',
     bio: 'ReactとNode.jsでプロダクト開発をしています。',
     age: 28,
+    gender: '男性',
+    scoutNg: false,
     ageVerified: true,
     experienceYears: 5,
     stackTags: ['React', 'Node.js', 'TypeScript'],
@@ -34,9 +41,18 @@ const sampleUsers = [
   {
     id: 'user-2',
     githubUsername: 'mona',
+    photoUrls: [
+      'https://picsum.photos/seed/user-2-1/800/1200',
+      'https://picsum.photos/seed/user-2-2/800/1200',
+      'https://picsum.photos/seed/user-2-3/800/1200',
+      'https://picsum.photos/seed/user-2-4/800/1200',
+      'https://picsum.photos/seed/user-2-5/800/1200'
+    ],
     displayName: 'Mona',
     bio: 'インフラとインシデント対応が得意です。',
     age: 32,
+    gender: '女性',
+    scoutNg: false,
     ageVerified: true,
     experienceYears: 8,
     stackTags: ['AWS', 'Docker', 'Kubernetes'],
@@ -49,13 +65,129 @@ const sampleUsers = [
   {
     id: 'user-3',
     githubUsername: 'ramen',
+    photoUrls: [
+      'https://picsum.photos/seed/user-3-1/800/1200',
+      'https://picsum.photos/seed/user-3-2/800/1200'
+    ],
     displayName: 'Raita',
     bio: 'フロントエンドのUX改善が好きです。',
     age: 26,
+    gender: '男性',
+    scoutNg: false,
     ageVerified: true,
     experienceYears: 4,
     stackTags: ['React', 'Vue', 'CSS'],
     hobbies: 'ラーメン, 映画',
+    likedUserIds: [],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-4',
+    githubUsername: 'kumi-dev',
+    photoUrls: [
+      'https://picsum.photos/seed/user-4-1/800/1200'
+    ],
+    displayName: 'Kumi',
+    bio: 'GoとKubernetesの設計でパフォーマンスにこだわります。',
+    age: 30,
+    gender: '女性',
+    scoutNg: true,
+    ageVerified: true,
+    experienceYears: 7,
+    stackTags: ['Go', 'Kubernetes', 'Terraform'],
+    hobbies: '登山, 写真',
+    likedUserIds: ['user-1'],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-5',
+    githubUsername: 'dev-miyu',
+    photoUrls: [
+      'https://picsum.photos/seed/user-5-1/800/1200',
+      'https://picsum.photos/seed/user-5-2/800/1200',
+      'https://picsum.photos/seed/user-5-3/800/1200',
+      'https://picsum.photos/seed/user-5-4/800/1200'
+    ],
+    displayName: 'Miyu',
+    bio: 'UI/UX改善とデザインシステムが得意です。',
+    age: 27,
+    gender: '女性',
+    scoutNg: false,
+    ageVerified: true,
+    experienceYears: 5,
+    stackTags: ['Figma', 'React', 'CSS'],
+    hobbies: 'カフェ, イラスト',
+    likedUserIds: [],
+    superLikedUserIds: ['user-1'],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-6',
+    githubUsername: 'arisa-k',
+    photoUrls: [
+      'https://picsum.photos/seed/user-6-1/800/1200',
+      'https://picsum.photos/seed/user-6-2/800/1200',
+      'https://picsum.photos/seed/user-6-3/800/1200',
+      'https://picsum.photos/seed/user-6-4/800/1200',
+      'https://picsum.photos/seed/user-6-5/800/1200'
+    ],
+    displayName: 'Arisa',
+    bio: 'モバイルアプリとAndroidネイティブが好きです。',
+    age: 29,
+    gender: '女性',
+    scoutNg: false,
+    ageVerified: true,
+    experienceYears: 6,
+    stackTags: ['Kotlin', 'Android', 'Jetpack'],
+    hobbies: 'ゲーム, ハイキング',
+    likedUserIds: [],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-7',
+    githubUsername: 'takumi-rs',
+    photoUrls: [
+      'https://picsum.photos/seed/user-7-1/800/1200',
+      'https://picsum.photos/seed/user-7-2/800/1200'
+    ],
+    displayName: 'Takumi',
+    bio: 'RustとWebAssemblyで高速なWeb体験を作ります。',
+    age: 31,
+    gender: '男性',
+    scoutNg: true,
+    ageVerified: true,
+    experienceYears: 7,
+    stackTags: ['Rust', 'WebAssembly', 'React'],
+    hobbies: 'ギター, キャンプ',
+    likedUserIds: [],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-8',
+    githubUsername: 'jun-ml',
+    photoUrls: [
+      'https://picsum.photos/seed/user-8-1/800/1200',
+      'https://picsum.photos/seed/user-8-2/800/1200',
+      'https://picsum.photos/seed/user-8-3/800/1200'
+    ],
+    displayName: 'Junya',
+    bio: '機械学習とデータパイプラインの設計を担当しています。',
+    age: 33,
+    gender: '男性',
+    scoutNg: false,
+    ageVerified: true,
+    experienceYears: 9,
+    stackTags: ['Python', 'TensorFlow', 'Airflow'],
+    hobbies: 'ロードバイク, 料理',
     likedUserIds: [],
     superLikedUserIds: [],
     nopedUserIds: [],
@@ -174,8 +306,11 @@ const storageService = {
         id: `user-${Date.now()}`,
         githubUsername,
         displayName,
+        photoUrls: [],
         bio: '',
         age: null,
+        gender: '',
+        scoutNg: false,
         ageVerified: false,
         experienceYears: 0,
         stackTags: [],
@@ -193,28 +328,41 @@ const storageService = {
     throw new Error('createUser is not supported in production');
   },
 
-  async saveUserProfile(profile) {
+  saveUserProfile(profile) {
     if (isLocalMode) {
       const users = this.getUsers();
-      let found = false;
-      const updatedUsers = users.map((user) => {
-        if (user.id === profile.id) {
-          found = true;
-          return { ...user, ...profile };
-        }
-        return user;
-      });
-      const nextUsers = found ? updatedUsers : [...updatedUsers, profile];
-      this.setUsers(nextUsers);
-      return nextUsers.find((user) => user.id === profile.id);
+      const normalizedProfile = {
+        photoUrls: [],
+        bio: '',
+        age: null,
+        gender: '',
+        scoutNg: false,
+        ageVerified: false,
+        experienceYears: 0,
+        stackTags: [],
+        hobbies: '',
+        likedUserIds: [],
+        superLikedUserIds: [],
+        nopedUserIds: [],
+        matches: [],
+        avatar: '',
+        ...profile
+      };
+      const exists = users.some((user) => user.id === normalizedProfile.id);
+      const updatedUsers = exists
+        ? users.map((user) => (user.id === normalizedProfile.id ? { ...user, ...normalizedProfile } : user))
+        : [...users, normalizedProfile];
+      this.setUsers(updatedUsers);
+      return updatedUsers.find((user) => user.id === normalizedProfile.id);
     }
+
     return fetchJson(`/api/users/${profile.id}/profile`, {
       method: 'PUT',
       body: JSON.stringify(profile)
     });
   },
 
-  async saveUserReaction(userId, targetId, isSuperLike = false) {
+  saveUserReaction(userId, targetId, isSuperLike = false) {
     if (isLocalMode) {
       const users = this.getUsers();
       const user = users.find((item) => item.id === userId);
@@ -265,11 +413,12 @@ const storageService = {
     });
   },
 
-  async saveUserNope(userId, targetId) {
+  saveUserNope(userId, targetId) {
     if (isLocalMode) {
       const users = this.getUsers();
       const user = users.find((item) => item.id === userId);
-      if (!user || userId === targetId) {
+      const target = users.find((item) => item.id === targetId);
+      if (!user || !target || userId === targetId) {
         return user;
       }
 
@@ -288,6 +437,9 @@ const storageService = {
   },
 
   seedSampleData() {
+    if (!isLocalMode) {
+      return [];
+    }
     const existing = this.getUsers();
     if (existing.length > 0) {
       return existing;

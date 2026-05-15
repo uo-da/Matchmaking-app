@@ -19,13 +19,29 @@ function App() {
   const [isEntranceVisible, setIsEntranceVisible] = useState(true);
   const [authError, setAuthError] = useState(false);
   const [selectedTab, setSelectedTab] = useState('users');
-  const [filter, setFilter] = useState({ stackTag: '', minYears: 0 });
+  const [filter, setFilter] = useState({
+    query: '',
+    stackTag: '',
+    stackTags: [],
+    minYears: 0,
+    minAge: 18,
+    maxAge: 80,
+    genders: ['女性', '男性'],
+    excludeScoutNg: true
+  });
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const [refreshToggle, setRefreshToggle] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [matchModal, setMatchModal] = useState(null);
 
   useEffect(() => {
+    const initializeData = async () => {
+      storageService.seedSampleData();
+      await chatService.seedSampleMessages();
+      const users = await storageService.getUsers();
+      setAllUsers(users);
+    };
+
     const loadSession = async () => {
       try {
         const saved = await authService.getCurrentSession();
@@ -42,10 +58,11 @@ function App() {
     } else {
       loadSession();
     }
+    initializeData();
   }, []);
 
   useEffect(() => {
-    if (currentUser && process.env.NODE_ENV === 'test') {
+    if (currentUser) {
       storageService.saveCurrentSession(currentUser);
     }
   }, [currentUser]);
@@ -98,21 +115,6 @@ function App() {
     setSelectedTab('users');
   };
 
-  const handleLogout = async () => {
-    if (process.env.NODE_ENV === 'test') {
-      authService.logout();
-      setCurrentUser(null);
-      setIsEntranceVisible(true);
-      return;
-    }
-
-    const success = await authService.logout();
-    if (success) {
-      setCurrentUser(null);
-      setIsEntranceVisible(true);
-    }
-  };
-
   const handleAgeConfirm = async (age) => {
     if (!currentUser) {
       console.error('No current user for age verification');
@@ -151,27 +153,37 @@ function App() {
   };
 
   const handleLike = async (targetId, isSuperLike = false) => {
-    const updated = await storageService.saveUserReaction(currentUser.id, targetId, isSuperLike);
-    if (!updated) {
+    if (!currentUser?.id || !targetId) {
       return;
     }
-    setCurrentUser(updated);
+    const updated = await storageService.saveUserReaction(currentUser.id, targetId, isSuperLike);
+    if (!updated) {
+      setRefreshToggle((value) => !value);
+      return;
+    }
+    const refreshedUser = await storageService.getUserById(updated.id);
+    setCurrentUser(refreshedUser || updated);
     setRefreshToggle((value) => !value);
 
     const targetUser = await storageService.getUserById(targetId);
     const targetLikedCurrent = targetUser
-      && (targetUser.likedUserIds.includes(currentUser.id) || targetUser.superLikedUserIds.includes(currentUser.id));
+      && ((targetUser.likedUserIds || []).includes(currentUser.id) || (targetUser.superLikedUserIds || []).includes(currentUser.id));
     if (targetLikedCurrent) {
       setMatchModal(targetUser);
     }
   };
 
   const handleNope = async (targetId) => {
-    const updated = await storageService.saveUserNope(currentUser.id, targetId);
-    if (!updated) {
+    if (!currentUser?.id || !targetId) {
       return;
     }
-    setCurrentUser(updated);
+    const updated = await storageService.saveUserNope(currentUser.id, targetId);
+    if (!updated) {
+      setRefreshToggle((value) => !value);
+      return;
+    }
+    const refreshedUser = await storageService.getUserById(updated.id);
+    setCurrentUser(refreshedUser || updated);
     setRefreshToggle((value) => !value);
   };
 
@@ -230,7 +242,7 @@ function App() {
           <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
         </div>
         <div className="header-actions">
-          {(selectedTab === 'users' || selectedTab === 'settings') && (
+          {selectedTab === 'users' && (
             <button type="button" className="icon-button icon-button--search" aria-label="検索">
               <img src="/images/search.png" alt="" className="icon-button__image" />
             </button>

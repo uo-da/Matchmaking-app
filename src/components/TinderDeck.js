@@ -1,10 +1,45 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
+const getGithubAvatarUrl = (githubUsername) => `https://github.com/${githubUsername}.png?size=320`;
+
+const getUserImageUrls = (user) => {
+  if (!user) {
+    return [];
+  }
+
+  const rawSources = [
+    user.photoUrls,
+    user.photos,
+    user.images,
+    user.imageUrls,
+    user.profileImages
+  ];
+  const imageUrls = rawSources
+    .flatMap((source) => (Array.isArray(source) ? source : []))
+    .map((item) => {
+      if (typeof item === 'string') {
+        return item.trim();
+      }
+      if (item && typeof item.url === 'string') {
+        return item.url.trim();
+      }
+      return '';
+    })
+    .filter(Boolean);
+
+  if (imageUrls.length > 0) {
+    return [...new Set(imageUrls)];
+  }
+
+  return [getGithubAvatarUrl(user.githubUsername)];
+};
+
 /**
  * @param {{ currentUser: Object, users: Object[], onLike: Function, onNope?: Function }} props
  */
 function TinderDeck({ currentUser, users, onLike, onNope }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
   const [exitTransform, setExitTransform] = useState(null);
   const [drag, setDrag] = useState({
@@ -19,7 +54,13 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
   const filteredUsers = useMemo(() => users, [users]);
   const currentUserCard = filteredUsers[currentIndex] || null;
   const nextUserCard = filteredUsers[currentIndex + 1] || null;
+  const currentUserPhotos = useMemo(() => getUserImageUrls(currentUserCard), [currentUserCard]);
+  const nextUserPhotos = useMemo(() => getUserImageUrls(nextUserCard), [nextUserCard]);
+  const heroRef = useRef(null);
   const exitTimerRef = useRef(null);
+  const didDragRef = useRef(false);
+  const startedInHeroRef = useRef(false);
+  const prefetchedUrlsRef = useRef(new Set());
   const currentCardLikedYou = currentUserCard
     ? currentUserCard.likedUserIds.includes(currentUser.id) || currentUserCard.superLikedUserIds.includes(currentUser.id)
     : false;
@@ -37,6 +78,32 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    setCurrentPhotoIndex(0);
+  }, [currentUserCard?.id]);
+
+  useEffect(() => {
+    if (!filteredUsers.length) {
+      return;
+    }
+
+    const preloadCount = 4;
+    const urlsToPrefetch = filteredUsers
+      .slice(currentIndex, currentIndex + preloadCount)
+      .flatMap((user) => getUserImageUrls(user))
+      .filter(Boolean);
+
+    urlsToPrefetch.forEach((url) => {
+      if (prefetchedUrlsRef.current.has(url)) {
+        return;
+      }
+      prefetchedUrlsRef.current.add(url);
+      const img = new window.Image();
+      img.decoding = 'async';
+      img.src = url;
+    });
+  }, [filteredUsers, currentIndex]);
 
   const resetSwipeState = () => {
     setDrag({ active: false, startX: 0, startY: 0, offsetX: 0, offsetY: 0, source: null });
@@ -93,6 +160,7 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
     if (isExiting) {
       return;
     }
+    didDragRef.current = false;
     setDrag({ active: true, startX: clientX, startY: clientY, offsetX: 0, offsetY: 0, source });
   };
 
@@ -103,14 +171,21 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
     if (!drag.active || drag.source !== source) {
       return;
     }
-    setDrag((prev) => ({
-      ...prev,
-      offsetX: clientX - prev.startX,
-      offsetY: clientY - prev.startY
-    }));
+    setDrag((prev) => {
+      const nextOffsetX = clientX - prev.startX;
+      const nextOffsetY = clientY - prev.startY;
+      if (Math.abs(nextOffsetX) > 8 || Math.abs(nextOffsetY) > 8) {
+        didDragRef.current = true;
+      }
+      return {
+        ...prev,
+        offsetX: nextOffsetX,
+        offsetY: nextOffsetY
+      };
+    });
   };
 
-  const finishDrag = (source) => {
+  const finishDrag = (source, event) => {
     if (isExiting) {
       return;
     }
@@ -130,12 +205,23 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
     const isVerticalDominant = absY > absX;
 
     if (isVerticalDominant && drag.offsetY < -verticalThreshold) {
+      startedInHeroRef.current = false;
       executeSwipe('superlike');
     } else if (drag.offsetX > horizontalThreshold) {
+      startedInHeroRef.current = false;
       executeSwipe('like');
     } else if (drag.offsetX < -horizontalThreshold) {
+      startedInHeroRef.current = false;
       executeSwipe('nope');
     } else {
+      if (!didDragRef.current && startedInHeroRef.current && event) {
+        const heroRect = heroRef.current?.getBoundingClientRect();
+        if (heroRect && heroRect.width > 0) {
+          const tappedX = event.clientX - heroRect.left;
+          handlePhotoChange(tappedX < heroRect.width / 2 ? -1 : 1);
+        }
+      }
+      startedInHeroRef.current = false;
       setDrag({ active: false, startX: 0, startY: 0, offsetX: 0, offsetY: 0, source: null });
     }
   };
@@ -144,6 +230,8 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
     if (isExiting) {
       return;
     }
+    const targetElement = event.target instanceof Element ? event.target : null;
+    startedInHeroRef.current = Boolean(targetElement?.closest('.deck-card__hero'));
     startDrag(event.clientX, event.clientY, 'pointer');
     if (event.currentTarget.setPointerCapture) {
       try {
@@ -158,30 +246,29 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
     updateDrag(event.clientX, event.clientY, 'pointer');
   };
 
-  const onPointerUp = () => {
-    finishDrag('pointer');
+  const onPointerUp = (event) => {
+    finishDrag('pointer', event);
   };
 
-  const onTouchStart = (event) => {
-    if (!event.touches || event.touches.length === 0) {
+  const onPointerCancel = () => {
+    startedInHeroRef.current = false;
+    setDrag({ active: false, startX: 0, startY: 0, offsetX: 0, offsetY: 0, source: null });
+  };
+
+  const handlePhotoChange = (direction) => {
+    if (isExiting || currentUserPhotos.length <= 1) {
       return;
     }
-    startDrag(event.touches[0].clientX, event.touches[0].clientY, 'touch');
+    setCurrentPhotoIndex((prev) => {
+      const nextIndex = prev + direction;
+      if (nextIndex < 0 || nextIndex >= currentUserPhotos.length) {
+        return prev;
+      }
+      return nextIndex;
+    });
   };
 
-  const onTouchMove = (event) => {
-    if (!event.touches || event.touches.length === 0) {
-      return;
-    }
-    updateDrag(event.touches[0].clientX, event.touches[0].clientY, 'touch');
-    if (drag.active && drag.source === 'touch') {
-      event.preventDefault();
-    }
-  };
-
-  const onTouchEnd = () => {
-    finishDrag('touch');
-  };
+  const activePhotoIndex = currentUserPhotos[currentPhotoIndex] ? currentPhotoIndex : 0;
 
   const cardStyle = {
     transform: isExiting && exitTransform
@@ -213,7 +300,7 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
                 <div className="deck-card__hero">
                   <img
                     className="deck-card__photo"
-                    src={`https://github.com/${nextUserCard.githubUsername}.png?size=320`}
+                    src={nextUserPhotos[0]}
                     alt=""
                     draggable="false"
                     onDragStart={(event) => event.preventDefault()}
@@ -243,19 +330,23 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-              onTouchCancel={onTouchEnd}
+              onPointerCancel={onPointerCancel}
               style={cardStyle}
               aria-disabled={isExiting}
             >
-              <div className="deck-card__hero">
+              <div className="deck-card__hero" ref={heroRef}>
+                <div className="deck-card__topbar" aria-hidden="true">
+                  {currentUserPhotos.map((photo, index) => (
+                    <div
+                      key={`${currentUserCard.id}-photo-progress-${photo}-${index}`}
+                      className={`deck-card__topbar-segment ${index === activePhotoIndex ? 'deck-card__topbar-segment--active' : ''}`.trim()}
+                    />
+                  ))}
+                </div>
                 {swipeLabel && <div className={swipeClass}>{swipeLabel}</div>}
                 <img
                   className="deck-card__photo"
-                  src={`https://github.com/${currentUserCard.githubUsername}.png?size=320`}
+                  src={currentUserPhotos[activePhotoIndex]}
                   alt={`${currentUserCard.displayName} の写真`}
                   draggable="false"
                   onDragStart={(event) => event.preventDefault()}
