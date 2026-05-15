@@ -25,10 +25,45 @@ body {
   background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
 }
 
+/* タブレットまではブラウザ版のスクロールなし */
+@media (max-width: 1024px) {
+  html,
+  body,
+  #root {
+    overflow: hidden;
+  }
+}
+
+/* モバイルではスクロールあり */
+@media (max-width: 768px) {
+  html,
+  body,
+  #root {
+    overflow: auto;
+  }
+
+  body {
+    overflow: auto;
+  }
+}
+
 .app-shell {
   max-width: 1080px;
   margin: 0 auto;
   padding: 16px 16px 120px;
+}
+
+@media (max-width: 1024px) {
+  .app-shell {
+    padding: 16px 16px 180px;
+  }
+}
+
+/* モバイルデバイスでのapp-shell調整 */
+@media (max-width: 768px) {
+  .app-shell {
+    padding: 16px 12px 120px;
+  }
 }
 
 .app-header {
@@ -81,6 +116,30 @@ body {
   height: 24px;
   display: block;
   object-fit: contain;
+}
+
+@media (max-width: 1024px) {
+  .app-nav {
+    width: calc(100% - 28px);
+    padding: 10px 14px;
+    gap: 10px;
+  }
+}
+
+/* モバイルデバイスでのフッター調整 */
+@media (max-width: 768px) {
+  .app-nav {
+    bottom: 20px;
+    padding: 10px 12px;
+    gap: 8px;
+    width: calc(100% - 24px);
+  }
+
+  .app-nav button {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+  }
 }
 
 .app-main {
@@ -1547,6 +1606,178 @@ button.superlike {
   }
 }
 
+.profile-card {
+  max-width: 620px;
+  margin: 12px auto 0;
+  padding: 20px;
+  border-radius: 28px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  transform: translateY(-40px);
+}
+
+@media (max-width: 1024px) {
+  .profile-card {
+    max-width: 440px;
+    margin: 16px auto 0;
+    padding: 18px;
+    transform: translateY(-20px);
+  }
+}
+
+/* モバイルデバイスでのプロフィールカード調整 */
+@media (max-width: 768px) {
+  .profile-card {
+    max-width: 90vw;
+    margin: 20px auto;
+    padding: 16px;
+    transform: translateY(0);
+  }
+}
+
+.profile-card__title {
+  margin: 0 0 12px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.profile-card__photos {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.profile-card__photo-note {
+  margin: 0 0 12px;
+  font-size: 0.75rem;
+  color: #f43f5e;
+  text-align: center;
+}
+
+.profile-card__photo-slot {
+  width: 70px;
+  height: 70px;
+  border-radius: 15px;
+  background: #eef2f7;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.profile-card__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-card__add-photo {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #d9d9d9;
+  color: #f43f5e;
+  border-radius: 15px;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.profile-card__remove-photo {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.profile-card__field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.profile-card__field label {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 0.85rem;
+}
+
+.profile-card__field input,
+.profile-card__field textarea,
+.profile-card__field select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.profile-card__field textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.profile-card__field select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #64748b 50%),
+    linear-gradient(135deg, #64748b 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 8px) 50%;
+  background-size: 8px 8px;
+  background-repeat: no-repeat;
+}
+
+.profile-card__tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+button.small-button {
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  color: #0f172a;
+  border-radius: 9999px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+}
+
+button.small-button.active-tag {
+  border-color: #f97316;
+  background: #fff7ed;
+  color: #b45309;
+}
+
+.profile-card__save-button {
+  width: 100%;
+  padding: 10px 0;
+  border-radius: 9999px;
+  background: #fb6372;
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.profile-card__save-button:hover {
+  background: #f43f5e;
+}
+
+.profile-card__error {
+  color: #dc2626;
+  font-size: 0.75rem;
+}
 /* Vendor card screen */
 .app-shell--users {
   max-width: 1080px;
