@@ -20,6 +20,7 @@ const sampleUsers = [
     id: 'user-1',
     githubUsername: 'octocat',
     displayName: 'Nao',
+    avatar: 'https://github.com/octocat.png',
     bio: 'ReactとNode.jsでプロダクト開発をしています。',
     age: 28,
     ageVerified: true,
@@ -35,6 +36,7 @@ const sampleUsers = [
     id: 'user-2',
     githubUsername: 'mona',
     displayName: 'Mona',
+    avatar: 'https://github.com/mona.png',
     bio: 'インフラとインシデント対応が得意です。',
     age: 32,
     ageVerified: true,
@@ -50,6 +52,7 @@ const sampleUsers = [
     id: 'user-3',
     githubUsername: 'ramen',
     displayName: 'Raita',
+    avatar: 'https://github.com/ramen.png',
     bio: 'フロントエンドのUX改善が好きです。',
     age: 26,
     ageVerified: true,
@@ -294,6 +297,67 @@ const storageService = {
     }
     this.setUsers(sampleUsers);
     return sampleUsers;
+  },
+
+  // 通知関連メソッド
+  getNotifications(userId) {
+    if (isLocalMode) {
+      try {
+        const raw = window.localStorage.getItem('matchmaking_notifications');
+        const notifications = raw ? JSON.parse(raw) : [];
+        return notifications.filter(notification => notification.toUserId === userId);
+      } catch {
+        return [];
+      }
+    }
+    // TODO: API実装
+    return [];
+  },
+
+  addNotification(type, fromUserId, toUserId) {
+    if (isLocalMode) {
+      const notifications = this.getAllNotifications();
+      const newNotification = {
+        id: `notification-${Date.now()}`,
+        type, // 'superLike' or 'match'
+        fromUserId,
+        toUserId,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+      notifications.push(newNotification);
+      window.localStorage.setItem('matchmaking_notifications', JSON.stringify(notifications));
+      return newNotification;
+    }
+    // TODO: API実装
+    return null;
+  },
+
+  markNotificationAsRead(notificationId) {
+    if (isLocalMode) {
+      const notifications = this.getAllNotifications();
+      const updatedNotifications = notifications.map(notification =>
+        notification.id === notificationId
+          ? { ...notification, read: true }
+          : notification
+      );
+      window.localStorage.setItem('matchmaking_notifications', JSON.stringify(updatedNotifications));
+      return true;
+    }
+    // TODO: API実装
+    return false;
+  },
+
+  getAllNotifications() {
+    if (isLocalMode) {
+      try {
+        const raw = window.localStorage.getItem('matchmaking_notifications');
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
   }
 };
 

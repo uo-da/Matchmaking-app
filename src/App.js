@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import AgeVerification from './components/AgeVerification';
 import EntrancePage from './components/EntrancePage';
 import LoginPage from './components/LoginPage';
@@ -9,6 +9,7 @@ import MatchList from './components/MatchList';
 import TalkList from './components/TalkList';
 import MatchChat from './components/MatchChat';
 import Footer from './components/Footer';
+import NotificationList from './components/NotificationList';
 import authService from './services/authService';
 import storageService from './services/storageService';
 import chatService from './services/chatService';
@@ -24,6 +25,9 @@ function App() {
   const [refreshToggle, setRefreshToggle] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [matchModal, setMatchModal] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotificationList, setShowNotificationList] = useState(false);
+  const notificationButtonRef = useRef(null);
 
   useEffect(() => {
     const loadSession = async () => {
@@ -67,6 +71,13 @@ function App() {
       loadUsers();
     }
   }, [refreshToggle]);
+
+  useEffect(() => {
+    if (currentUser) {
+      const userNotifications = storageService.getNotifications(currentUser.id);
+      setNotifications(userNotifications);
+    }
+  }, [currentUser, refreshToggle]);
 
   const filteredUsers = useMemo(() => {
     if (!currentUser) {
@@ -158,10 +169,18 @@ function App() {
     setCurrentUser(updated);
     setRefreshToggle((value) => !value);
 
+    // スーパーライクの場合は通知を追加
+    if (isSuperLike) {
+      storageService.addNotification('superLike', currentUser.id, targetId);
+    }
+
     const targetUser = await storageService.getUserById(targetId);
     const targetLikedCurrent = targetUser
       && (targetUser.likedUserIds.includes(currentUser.id) || targetUser.superLikedUserIds.includes(currentUser.id));
     if (targetLikedCurrent) {
+      // マッチ成立の場合は通知を追加
+      storageService.addNotification('match', currentUser.id, targetId);
+      storageService.addNotification('match', targetId, currentUser.id);
       setMatchModal(targetUser);
     }
   };
@@ -203,6 +222,37 @@ function App() {
     setSelectedTab(tabId);
   };
 
+  const handleNotificationClick = () => {
+    console.log('Notification button clicked');
+    setShowNotificationList(!showNotificationList);
+  };
+
+  const handleNotificationClose = () => {
+    setShowNotificationList(false);
+  };
+
+  // 通知ドロップダウンの外側クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationButtonRef.current && !notificationButtonRef.current.contains(event.target)) {
+        setShowNotificationList(false);
+      }
+    };
+
+    if (showNotificationList) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotificationList]);
+
+  const handleMarkNotificationAsRead = (notificationId) => {
+    storageService.markNotificationAsRead(notificationId);
+    setRefreshToggle((value) => !value);
+  };
+
   if (!currentUser) {
     if (isEntranceVisible) {
       return <EntrancePage onEnter={() => setIsEntranceVisible(false)} />;
@@ -235,9 +285,22 @@ function App() {
               <img src="/images/search.png" alt="" className="icon-button__image" />
             </button>
           )}
-          <button type="button" className="icon-button icon-button--bell" aria-label="通知">
+          <button type="button" className="icon-button icon-button--bell" aria-label="通知" onClick={handleNotificationClick} ref={notificationButtonRef}>
             <img src="/images/bell.png" alt="" className="icon-button__image" />
+            {notifications.filter(n => !n.read).length > 0 && (
+              <span className="notification-badge">
+                {notifications.filter(n => !n.read).length}
+              </span>
+            )}
           </button>
+          {showNotificationList && (
+            <NotificationList
+              notifications={notifications}
+              users={allUsers}
+              onClose={handleNotificationClose}
+              onMarkAsRead={handleMarkNotificationAsRead}
+            />
+          )}
         </div>
       </header>
       <main className="app-main">
