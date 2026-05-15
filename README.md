@@ -1,6 +1,6 @@
 # Matchmaking-app
 
-エンジニア向けマッチングアプリのMVPフロントエンドです。`claude.md`の要件に沿い、Reactとローカルストレージを利用したサンプルアプリを構成しました。
+エンジニア向けマッチングアプリのMVPです。`claude.md`の要件に沿い、ReactフロントエンドとNode.js/SQLiteバックエンドを構成しています。
 
 ## 主な機能
 - GitHub連携ログイン（OIDCを想定した入力UI）
@@ -9,7 +9,7 @@
 - プロフィール画面にGitHub草を表示
 - ユーザ一覧・検索・フィルタリング
 - いいね / スーパーライク
-- マッチング済みユーザとのチャット（ブラウザ内ストレージとBroadcastChannelで実装）
+- マッチング済みユーザとのチャット（WebSocketでリアルタイム更新）
 
 ## 使い方
 
@@ -57,8 +57,9 @@ REACT_APP_GITHUB_OIDC_ISSUER=https://github.com
 
 ## フォルダ構成
 
+- `server/` - Express / SQLite バックエンド
 - `src/components/` - Reactコンポーネント
 - `src/hooks/` - カスタムフック
-- `src/services/` - ローカルストレージと認証サービス
+- `src/services/` - API通信と認証サービス
 - `src/utils/` - フィルタ・マッチングロジック
 - `tests/` - Jestテスト

@@ -33,3 +33,5 @@ replay_pid*
 
 data/
 data/database.sqlite
+server/data/
+server/data/database.sqlite
