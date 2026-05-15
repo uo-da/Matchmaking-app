@@ -1,21 +1,20 @@
 import React from 'react';
-const authService = require('../services/authService');
+import authService from '../services/authService';
 
 /**
  * @param {{ onLogin: (user?: any) => void, authError?: boolean }} props
  */
 function LoginPage({ onLogin, authError = false }) {
-  const handleLogin = () => {
-    // テスト時はonLoginを呼び出し、本番時はリダイレクト
+  const handleLogin = async () => {
+    // テスト時はonLoginを呼び出し、本番時はGitHub認証にリダイレクト
     if (process.env.NODE_ENV === 'test') {
       onLogin();
-    } else {
-      try {
-        window.location.href = '/auth/github';
-      } catch (error) {
-        console.error('Auth redirect failed:', error);
-        // authErrorはpropsなので変更できない
-      }
+      return;
+    }
+    try {
+      await authService.loginWithGitHub();
+    } catch (error) {
+      console.error('Auth redirect failed:', error);
     }
   };
 

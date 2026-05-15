@@ -104,9 +104,9 @@ function App() {
     return new Set(currentUser?.matches || []);
   }, [currentUser]);
 
-  const handleLogin = (user) => {
+  const handleLogin = async (user) => {
     if (!user && process.env.NODE_ENV === 'test') {
-      user = authService.demoLogin();
+      user = await authService.demoLogin();
     }
     if (!user) {
       return;

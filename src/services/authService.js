@@ -7,9 +7,12 @@ const getFallbackApiBase = () => {
   if (typeof window === 'undefined') {
     return '';
   }
-  const host = window.location.host;
+  const { protocol, host, hostname, port } = window.location;
   if (host.includes('-3000.app.github.dev')) {
-    return `${window.location.protocol}//${host.replace('-3000.app.github.dev', '-5000.app.github.dev')}`;
+    return `${protocol}//${host.replace('-3000.app.github.dev', '-5000.app.github.dev')}`;
+  }
+  if (port === '3000') {
+    return `${protocol}//${hostname}:5000`;
   }
   return '';
 };
@@ -59,7 +62,7 @@ const authService = {
       return user;
     }
     // GitHub認証ページにリダイレクト
-    const authHost = API_BASE || getFallbackApiBase();
+    const authHost = API_BASE || getFallbackApiBase() || '';
     window.location.href = `${authHost}/auth/github`;
   },
 
@@ -172,4 +175,4 @@ const authService = {
   }
 };
 
-module.exports = authService;
+export default authService;

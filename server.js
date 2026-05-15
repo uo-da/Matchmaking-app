@@ -1,3 +1,4 @@
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
@@ -18,7 +19,7 @@ const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || 'your-github-cl
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-session-secret';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
-const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || `${FRONTEND_URL}/auth/github/callback`;
+const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || `${BACKEND_URL}/auth/github/callback`;
 const GITHUB_FAILURE_URL = process.env.GITHUB_FAILURE_URL || `${FRONTEND_URL}/login`;
 const GITHUB_SUCCESS_URL = process.env.GITHUB_SUCCESS_URL || FRONTEND_URL;
 
