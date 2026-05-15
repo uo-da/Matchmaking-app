@@ -1,4 +1,44 @@
-const API_BASE = 'http://localhost:5000';
+const API_BASE = process.env.REACT_APP_API_BASE || '';
+
+const getFallbackApiBase = () => {
+  if (API_BASE) {
+    return API_BASE;
+  }
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  const host = window.location.host;
+  if (host.includes('-3000.app.github.dev')) {
+    return `${window.location.protocol}//${host.replace('-3000.app.github.dev', '-5000.app.github.dev')}`;
+  }
+  return '';
+};
+
+const attemptFetchBase = async (base, path, options = {}) => {
+  return fetch(`${base}${path}`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    ...options
+  });
+};
+
+const fetchAuthResponse = async (path, options = {}) => {
+  const fallbackBase = getFallbackApiBase();
+  try {
+    const response = await attemptFetchBase(API_BASE, path, options);
+    if (!response.ok && fallbackBase && fallbackBase !== API_BASE) {
+      return await attemptFetchBase(fallbackBase, path, options);
+    }
+    return response;
+  } catch (error) {
+    if (fallbackBase && fallbackBase !== API_BASE) {
+      return await attemptFetchBase(fallbackBase, path, options);
+    }
+    throw error;
+  }
+};
 
 const authService = {
   /**
@@ -19,7 +59,8 @@ const authService = {
       return user;
     }
     // GitHub認証ページにリダイレクト
-    window.location.href = `${API_BASE}/auth/github`;
+    const authHost = API_BASE || getFallbackApiBase();
+    window.location.href = `${authHost}/auth/github`;
   },
 
   /**
@@ -32,12 +73,11 @@ const authService = {
       return saved ? JSON.parse(saved) : null;
     }
     try {
-      const response = await fetch(`${API_BASE}/auth/user`, {
-        credentials: 'include'
-      });
+      const response = await fetchAuthResponse('/auth/user');
       if (response.ok) {
         return await response.json();
       }
+      console.error('Failed to get current session:', response.status, await response.text());
     } catch (error) {
       console.error('Failed to get current session:', error);
     }
@@ -54,9 +94,8 @@ const authService = {
       return true;
     }
     try {
-      const response = await fetch(`${API_BASE}/auth/logout`, {
-        method: 'POST',
-        credentials: 'include'
+      const response = await fetchAuthResponse('/auth/logout', {
+        method: 'POST'
       });
       return response.ok;
     } catch (error) {
@@ -83,13 +122,13 @@ const authService = {
    * 仮ログイン（テスト用）
    * @returns {User}
    */
-  demoLogin() {
+  async demoLogin() {
     const usernames = ['octocat', 'torvalds', 'gaearon', 'tj', 'sindresorhus'];
     const randomUsername = usernames[Math.floor(Math.random() * usernames.length)];
-    const user = {
+    const demoUser = {
       id: `demo-${Date.now()}`,
       githubUsername: randomUsername,
-      displayName: randomUsername,
+      displayName: `${randomUsername} (Demo)`,
       bio: '',
       age: null,
       ageVerified: false,
@@ -98,11 +137,38 @@ const authService = {
       hobbies: '',
       likedUserIds: [],
       superLikedUserIds: [],
+      nopedUserIds: [],
       matches: [],
       avatar: `https://github.com/${randomUsername}.png`
     };
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    return user;
+
+    if (process.env.NODE_ENV !== 'production') {
+      localStorage.setItem('currentUser', JSON.stringify(demoUser));
+      return demoUser;
+    }
+
+    try {
+      const response = await fetch('/api/users/guest', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          githubUsername: demoUser.githubUsername,
+          displayName: demoUser.displayName,
+          avatar: demoUser.avatar
+        })
+      });
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(`Guest login failed: ${response.status} ${message}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to create guest user:', error);
+      return null;
+    }
   }
 };
 
