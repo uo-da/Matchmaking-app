@@ -12,6 +12,7 @@ const sampleUsers = [
     experienceYears: 5,
     stackTags: ['React', 'Node.js', 'TypeScript'],
     hobbies: '読書, カフェ巡り',
+    photoUrls: [],
     likedUserIds: ['user-2'],
     superLikedUserIds: [],
     matches: ['user-2']
@@ -172,6 +173,7 @@ const storageService = {
       experienceYears: 0,
       stackTags: [],
       hobbies: '',
+      photoUrls: [],
       likedUserIds: [],
       superLikedUserIds: [],
       matches: []

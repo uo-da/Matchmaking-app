@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
-const popularTags = ['React', 'Vue', 'Angular', 'Node.js', 'TypeScript', 'Python', 'Go', 'AWS', 'Docker', 'Kubernetes'];
+const popularTags = ['Python', 'Java', 'Go', 'JavaScript', 'TypeScript', 'AWS', 'Docker', 'Kubernetes'];
+const yearOptions = Array.from({ length: 20 }, (_, index) => index + 1);
 
 /**
  * @param {{ user: Object, onSave: (profile: Object) => void }} props
@@ -9,12 +10,15 @@ function ProfileEditor({ user, onSave }) {
   const [profile, setProfile] = useState({
     displayName: user.displayName || '',
     bio: user.bio || '',
-    stackTags: user.stackTags.join(', ') || '',
+    stackTags: (user.stackTags || []).join(', ') || '',
     experienceYears: user.experienceYears || 0,
     hobbies: user.hobbies || '',
-    githubUsername: user.githubUsername || ''
+    photoUrls: user.photoUrls || []
   });
   const [errors, setErrors] = useState({});
+  const fileInputRef = useRef(null);
+
+  const photos = Array.from({ length: 3 }, (_, index) => profile.photoUrls[index] || null);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -27,8 +31,41 @@ function ProfileEditor({ user, onSave }) {
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
-    const nextTags = tags.includes(tag) ? tags : [...tags, tag];
+    const nextTags = tags.includes(tag)
+      ? tags.filter((item) => item !== tag)
+      : [...tags, tag];
     setProfile((prev) => ({ ...prev, stackTags: nextTags.join(', ') }));
+  };
+
+  const handleAddPhoto = () => {
+    if (profile.photoUrls.length >= 3) {
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProfile((prev) => ({
+        ...prev,
+        photoUrls: [...(prev.photoUrls || []), reader.result].slice(0, 3)
+      }));
+    };
+    reader.readAsDataURL(file);
+    event.target.value = null;
+  };
+
+  const handleRemovePhoto = (index) => {
+    setProfile((prev) => {
+      const nextPhotos = [...(prev.photoUrls || [])];
+      nextPhotos.splice(index, 1);
+      return { ...prev, photoUrls: nextPhotos };
+    });
   };
 
   const validateProfile = () => {
@@ -55,29 +92,72 @@ function ProfileEditor({ user, onSave }) {
       stackTags: profile.stackTags.split(',').map((tag) => tag.trim()).filter(Boolean),
       experienceYears: Number(profile.experienceYears) || 0,
       hobbies: profile.hobbies.trim(),
-      githubUsername: profile.githubUsername.trim() || user.githubUsername
+      photoUrls: profile.photoUrls
     });
   };
 
   return (
-    <div className="card">
-      <h2>プロフィール編集</h2>
-      <form onSubmit={handleSubmit} className="grid">
-        <div className="field">
-          <label htmlFor="displayName">表示名</label>
-          <input id="displayName" name="displayName" value={profile.displayName} onChange={handleChange} />
+    <div className="profile-card">
+      <h2 className="profile-card__title">プロフィール</h2>
+      <form onSubmit={handleSubmit} className="profile-card__form">
+        <div className="profile-card__photos">
+          {photos.map((photo, index) => (
+            <div key={index} className="profile-card__photo-slot">
+              {photo ? (
+                <>
+                  <img
+                    className="profile-card__photo"
+                    src={photo}
+                    alt={`プロフィール写真 ${index + 1}`}
+                    onError={(event) => {
+                      event.currentTarget.src = 'https://via.placeholder.com/120';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="profile-card__remove-photo"
+                    onClick={() => handleRemovePhoto(index)}
+                    aria-label="写真を削除"
+                  >
+                    ×
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="profile-card__add-photo" onClick={handleAddPhoto}>
+                  ＋
+                </button>
+              )}
+            </div>
+          ))}
         </div>
-        <div className="field">
-          <label htmlFor="githubUsername">GitHubユーザ名</label>
-          <input id="githubUsername" name="githubUsername" value={profile.githubUsername} onChange={handleChange} />
+
+        <p className="profile-card__photo-note">最低2枚の画像を登録してください</p>
+
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+
+        <div className="profile-card__field">
+          <label htmlFor="displayName">Name</label>
+          <input id="displayName" name="displayName" value={profile.displayName} onChange={handleChange} placeholder="Name" />
         </div>
-        <div className="field">
+
+        <div className="profile-card__field">
           <label htmlFor="bio">自己紹介</label>
-          <textarea id="bio" name="bio" value={profile.bio} onChange={handleChange} rows="4" />
+          <textarea id="bio" name="bio" value={profile.bio} onChange={handleChange} rows="4" placeholder="バックエンドエンジニアです。" />
         </div>
-        <div className="field">
-          <label>よく使われる技術タグ</label>
-          <div className="tags-list">
+
+        <div className="profile-card__field">
+          <label htmlFor="experienceYears">経験年数</label>
+          <select id="experienceYears" name="experienceYears" value={profile.experienceYears} onChange={handleChange}>
+            <option value="0">選択してください</option>
+            {yearOptions.map((year) => (
+              <option key={year} value={year}>{year}年</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="profile-card__field">
+          <label>技術タグ</label>
+          <div className="profile-card__tag-list">
             {popularTags.map((tag) => (
               <button
                 key={tag}
@@ -89,49 +169,25 @@ function ProfileEditor({ user, onSave }) {
               </button>
             ))}
           </div>
-        </div>
-        <div className="field">
-          <label htmlFor="stackTags">技術スタック <span style={{ color: 'red' }}>*</span></label>
           <input
             id="stackTags"
             name="stackTags"
             value={profile.stackTags}
             onChange={handleChange}
-            placeholder="例: React, Node.js, TypeScript"
+            placeholder="カンマ区切りでタグを登録(例) Java, AWS,"
           />
-          {errors.stackTags && <div style={{ color: 'red', fontSize: '0.9rem' }}>{errors.stackTags}</div>}
-          <small>複数指定する場合はカンマ区切りで入力できます。</small>
+          {errors.stackTags && <div className="profile-card__error">{errors.stackTags}</div>}
         </div>
-        <div className="field">
-          <label htmlFor="experienceYears">経験年数 <span style={{ color: 'red' }}>*</span></label>
-          <input
-            id="experienceYears"
-            name="experienceYears"
-            type="number"
-            min="0"
-            value={profile.experienceYears}
-            onChange={handleChange}
-          />
-          {errors.experienceYears && <div style={{ color: 'red', fontSize: '0.9rem' }}>{errors.experienceYears}</div>}
-        </div>
-        <div className="field">
+
+        <div className="profile-card__field">
           <label htmlFor="hobbies">趣味</label>
-          <input id="hobbies" name="hobbies" value={profile.hobbies} onChange={handleChange} />
+          <input id="hobbies" name="hobbies" value={profile.hobbies} onChange={handleChange} placeholder="カンマ区切りでタグを登録(例) 散歩, PC," />
         </div>
-        <button type="submit" className="primary-button">
-          保存する
+
+        <button type="submit" className="primary-button profile-card__save-button">
+          登録する
         </button>
       </form>
-      {user.githubUsername && (
-        <div className="field">
-          <label>GitHub 草</label>
-          <img
-            alt="GitHub contributions"
-            src={`https://ghchart.rshah.org/${user.githubUsername}`}
-            style={{ width: '100%', maxWidth: 520, borderRadius: 12, marginTop: 10 }}
-          />
-        </div>
-      )}
     </div>
   );
 }
