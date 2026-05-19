@@ -1,7 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import chatService from '../services/chatService';
-
-const FALLBACK_AVATAR = 'https://via.placeholder.com/160?text=No+Image';
+import React, { useMemo } from 'react';
+import { getUserImageCandidates, loadNextImageCandidate } from '../utils/userImage';
 
 function formatChatTime(timestamp) {
   if (!timestamp) {
@@ -14,11 +12,9 @@ function formatChatTime(timestamp) {
 }
 
 /**
- * @param {{ currentUser: Object, users: Object[], matchedUserIds: Set<string>, onSelectMatch: (matchId: string) => void }} props
+ * @param {{ currentUser: Object, users: Object[], matchedUserIds: Set<string>, messagesByMatchId: Record<string, Object[]>, onSelectMatch: (matchId: string) => void }} props
  */
-function TalkList({ currentUser, users, matchedUserIds, onSelectMatch }) {
-  const [messagesByMatchId, setMessagesByMatchId] = useState({});
-
+function TalkList({ currentUser, users, matchedUserIds, messagesByMatchId = {}, onSelectMatch }) {
   const matchedUsers = useMemo(() => {
     const ids = Array.isArray(currentUser.matches) ? currentUser.matches : [];
     const userMap = new Map(users.map((user) => [user.id, user]));
@@ -26,52 +22,6 @@ function TalkList({ currentUser, users, matchedUserIds, onSelectMatch }) {
       .map((id) => userMap.get(id))
       .filter((user) => user && user.id !== currentUser.id && matchedUserIds.has(user.id));
   }, [currentUser.id, currentUser.matches, matchedUserIds, users]);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const loadMessages = async () => {
-      const entries = await Promise.all(
-        matchedUsers.map(async (user) => {
-          const messages = await chatService.getMessages(currentUser.id, user.id);
-          return [user.id, messages];
-        })
-      );
-
-      if (isCancelled) {
-        return;
-      }
-
-      setMessagesByMatchId(Object.fromEntries(entries));
-    };
-
-    loadMessages();
-
-    const channel = chatService.subscribe((event) => {
-      if (!event.matchKey) {
-        return;
-      }
-
-      const target = matchedUsers.find(
-        (user) => chatService.getMatchKey(currentUser.id, user.id) === event.matchKey
-      );
-
-      if (!target) {
-        return;
-      }
-
-      chatService.getMessages(currentUser.id, target.id).then((messages) => {
-        if (!isCancelled) {
-          setMessagesByMatchId((prev) => ({ ...prev, [target.id]: messages }));
-        }
-      });
-    });
-
-    return () => {
-      isCancelled = true;
-      channel.unsubscribe();
-    };
-  }, [currentUser.id, matchedUsers]);
 
   const talkItems = useMemo(() => {
     return matchedUsers
@@ -109,24 +59,28 @@ function TalkList({ currentUser, users, matchedUserIds, onSelectMatch }) {
           <p className="talk-empty">まだマッチしていません</p>
         ) : (
           <div className="new-match-strip" role="list">
-            {newMatches.map(({ user }) => (
-              <button
-                key={`new-match-${user.id}`}
-                type="button"
-                className="new-match-thumb"
-                onClick={() => onSelectMatch(user.id)}
-                aria-label={`${user.displayName}とのトークを開く`}
-              >
-                <img
-                  className="new-match-thumb__image"
-                  src={`https://github.com/${user.githubUsername}.png?size=260`}
-                  alt={user.displayName}
-                  onError={(event) => {
-                    event.currentTarget.src = FALLBACK_AVATAR;
-                  }}
-                />
-              </button>
-            ))}
+            {newMatches.map(({ user }) => {
+              const imageCandidates = getUserImageCandidates(user, 260);
+              return (
+                <button
+                  key={`new-match-${user.id}`}
+                  type="button"
+                  className="new-match-thumb"
+                  onClick={() => onSelectMatch(user.id)}
+                  aria-label={`${user.displayName}とのトークを開く`}
+                >
+                  <img
+                    className="new-match-thumb__image"
+                    src={imageCandidates[0]}
+                    alt={user.displayName}
+                    data-candidate-index="0"
+                    onError={(event) => {
+                      loadNextImageCandidate(event, imageCandidates);
+                    }}
+                  />
+                </button>
+              );
+            })}
           </div>
         )}
       </section>
@@ -137,31 +91,35 @@ function TalkList({ currentUser, users, matchedUserIds, onSelectMatch }) {
           <p className="talk-empty">ここにトークが表示されます</p>
         ) : (
           <div className="talk-list" role="list">
-            {talkItems.map(({ user, preview, timeLabel, unreadCount }) => (
-              <button
-                key={`talk-${user.id}`}
-                type="button"
-                className="talk-item"
-                onClick={() => onSelectMatch(user.id)}
-              >
-                <img
-                  className="talk-item__avatar"
-                  src={`https://github.com/${user.githubUsername}.png?size=220`}
-                  alt={user.displayName}
-                  onError={(event) => {
-                    event.currentTarget.src = FALLBACK_AVATAR;
-                  }}
-                />
-                <div className="talk-item__body">
-                  <p className="talk-item__name">{user.displayName}</p>
-                  <p className="talk-item__preview">{preview}</p>
-                </div>
-                <div className="talk-item__meta">
-                  <span className="talk-item__time">{timeLabel}</span>
-                  {unreadCount > 0 && <span className="talk-item__badge">{unreadCount}</span>}
-                </div>
-              </button>
-            ))}
+            {talkItems.map(({ user, preview, timeLabel, unreadCount }) => {
+              const imageCandidates = getUserImageCandidates(user, 220);
+              return (
+                <button
+                  key={`talk-${user.id}`}
+                  type="button"
+                  className="talk-item"
+                  onClick={() => onSelectMatch(user.id)}
+                >
+                  <img
+                    className="talk-item__avatar"
+                    src={imageCandidates[0]}
+                    alt={user.displayName}
+                    data-candidate-index="0"
+                    onError={(event) => {
+                      loadNextImageCandidate(event, imageCandidates);
+                    }}
+                  />
+                  <div className="talk-item__body">
+                    <p className="talk-item__name">{user.displayName}</p>
+                    <p className="talk-item__preview">{preview}</p>
+                  </div>
+                  <div className="talk-item__meta">
+                    <span className="talk-item__time">{timeLabel}</span>
+                    {unreadCount > 0 && <span className="talk-item__badge">{unreadCount}</span>}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </section>

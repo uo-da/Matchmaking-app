@@ -195,6 +195,92 @@ const sampleUsers = [
     superLikedUserIds: [],
     nopedUserIds: [],
     matches: []
+  },
+  {
+    id: 'user-wasabi49',
+    githubUsername: 'wasabi49',
+    photoUrls: [
+      'https://picsum.photos/seed/user-wasabi49-1/800/1200',
+      'https://picsum.photos/seed/user-wasabi49-2/800/1200'
+    ],
+    displayName: 'wasabi49',
+    avatar: 'https://github.com/wasabi49.png',
+    bio: 'チャット機能の検証用アカウントです。',
+    age: 28,
+    gender: '男性',
+    scoutNg: false,
+    ageVerified: true,
+    experienceYears: 5,
+    stackTags: ['React', 'Node.js', 'TypeScript'],
+    hobbies: 'テスト, 検証',
+    likedUserIds: [],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-wasabi-dummy-1',
+    githubUsername: 'wasabi49-dummy-1',
+    photoUrls: [
+      'https://picsum.photos/seed/user-wasabi-dummy-1-1/800/1200'
+    ],
+    displayName: 'Dummy Akari',
+    avatar: 'https://github.com/identicons/wasabi49-dummy-1.png',
+    bio: 'wasabi49の検証用ダミーアカウントです。',
+    age: 27,
+    gender: '女性',
+    scoutNg: false,
+    ageVerified: true,
+    experienceYears: 4,
+    stackTags: ['React', 'Figma'],
+    hobbies: '散歩, 読書',
+    likedUserIds: ['user-wasabi49'],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-wasabi-dummy-2',
+    githubUsername: 'wasabi49-dummy-2',
+    photoUrls: [
+      'https://picsum.photos/seed/user-wasabi-dummy-2-1/800/1200',
+      'https://picsum.photos/seed/user-wasabi-dummy-2-2/800/1200'
+    ],
+    displayName: 'Dummy Ren',
+    avatar: 'https://github.com/identicons/wasabi49-dummy-2.png',
+    bio: 'wasabi49の検証用ダミーアカウントです。',
+    age: 30,
+    gender: '男性',
+    scoutNg: false,
+    ageVerified: true,
+    experienceYears: 6,
+    stackTags: ['Python', 'AWS'],
+    hobbies: '映画, カフェ',
+    likedUserIds: ['user-wasabi49'],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-wasabi-dummy-3',
+    githubUsername: 'wasabi49-dummy-3',
+    photoUrls: [
+      'https://picsum.photos/seed/user-wasabi-dummy-3-1/800/1200'
+    ],
+    displayName: 'Dummy Mei',
+    avatar: 'https://github.com/identicons/wasabi49-dummy-3.png',
+    bio: 'wasabi49の検証用ダミーアカウントです。',
+    age: 25,
+    gender: '女性',
+    scoutNg: false,
+    ageVerified: true,
+    experienceYears: 3,
+    stackTags: ['Go', 'Kubernetes'],
+    hobbies: '写真, 旅行',
+    likedUserIds: [],
+    superLikedUserIds: ['user-wasabi49'],
+    nopedUserIds: [],
+    matches: []
   }
 ];
 

@@ -78,6 +78,169 @@ const serializeUser = (row) => {
 
 const normalizeArray = (value) => Array.isArray(value) ? value : [];
 const addUnique = (list, value) => (list.includes(value) ? list : [...list, value]);
+const mergeUnique = (list, values) => {
+  const normalized = normalizeArray(list);
+  return normalizeArray(values).reduce((acc, value) => addUnique(acc, value), normalized);
+};
+
+const WASABI_FIXTURE_USERS = [
+  {
+    id: 'user-wasabi49',
+    githubUsername: 'wasabi49',
+    displayName: 'wasabi49',
+    bio: 'チャット機能の検証用アカウントです。',
+    age: 28,
+    ageVerified: 1,
+    experienceYears: 5,
+    stackTags: ['React', 'Node.js', 'TypeScript'],
+    hobbies: 'テスト, 検証',
+    avatar: 'https://github.com/wasabi49.png',
+    likedUserIds: [],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-wasabi-dummy-1',
+    githubUsername: 'wasabi49-dummy-1',
+    displayName: 'Dummy Akari',
+    bio: 'wasabi49の検証用ダミーアカウントです。',
+    age: 27,
+    ageVerified: 1,
+    experienceYears: 4,
+    stackTags: ['React', 'Figma'],
+    hobbies: '散歩, 読書',
+    avatar: 'https://github.com/identicons/wasabi49-dummy-1.png',
+    likedUserIds: [],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-wasabi-dummy-2',
+    githubUsername: 'wasabi49-dummy-2',
+    displayName: 'Dummy Ren',
+    bio: 'wasabi49の検証用ダミーアカウントです。',
+    age: 30,
+    ageVerified: 1,
+    experienceYears: 6,
+    stackTags: ['Python', 'AWS'],
+    hobbies: '映画, カフェ',
+    avatar: 'https://github.com/identicons/wasabi49-dummy-2.png',
+    likedUserIds: [],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  },
+  {
+    id: 'user-wasabi-dummy-3',
+    githubUsername: 'wasabi49-dummy-3',
+    displayName: 'Dummy Mei',
+    bio: 'wasabi49の検証用ダミーアカウントです。',
+    age: 25,
+    ageVerified: 1,
+    experienceYears: 3,
+    stackTags: ['Go', 'Kubernetes'],
+    hobbies: '写真, 旅行',
+    avatar: 'https://github.com/identicons/wasabi49-dummy-3.png',
+    likedUserIds: [],
+    superLikedUserIds: [],
+    nopedUserIds: [],
+    matches: []
+  }
+];
+
+const ensureWasabiFixtures = async () => {
+  const insert = `INSERT INTO users (id, githubUsername, displayName, bio, age, ageVerified, experienceYears, stackTags, hobbies, likedUserIds, superLikedUserIds, nopedUserIds, matches, avatar)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+  for (const fixture of WASABI_FIXTURE_USERS) {
+    let existing = await getUserByGithub(fixture.githubUsername);
+    if (!existing) {
+      await run(insert, [
+        fixture.id,
+        fixture.githubUsername,
+        fixture.displayName,
+        fixture.bio,
+        fixture.age,
+        fixture.ageVerified,
+        fixture.experienceYears,
+        JSON.stringify(fixture.stackTags),
+        fixture.hobbies,
+        JSON.stringify(fixture.likedUserIds),
+        JSON.stringify(fixture.superLikedUserIds),
+        JSON.stringify(fixture.nopedUserIds),
+        JSON.stringify(fixture.matches),
+        fixture.avatar
+      ]);
+      existing = await getUserByGithub(fixture.githubUsername);
+    }
+
+    if (!existing) {
+      continue;
+    }
+
+    const merged = {
+      ...existing,
+      likedUserIds: mergeUnique(existing.likedUserIds, fixture.likedUserIds),
+      superLikedUserIds: mergeUnique(existing.superLikedUserIds, fixture.superLikedUserIds),
+      nopedUserIds: normalizeArray(existing.nopedUserIds)
+    };
+
+    await saveUser(merged);
+  }
+
+  const wasabi = await getUserByGithub('wasabi49');
+  if (!wasabi) {
+    return;
+  }
+
+  const wasabiLikes = normalizeArray(wasabi.likedUserIds);
+  const wasabiSuperLikes = normalizeArray(wasabi.superLikedUserIds);
+  let wasabiMatches = normalizeArray(wasabi.matches);
+
+  const dummyUsers = await Promise.all([
+    getUserByGithub('wasabi49-dummy-1'),
+    getUserByGithub('wasabi49-dummy-2'),
+    getUserByGithub('wasabi49-dummy-3')
+  ]);
+
+  for (const dummy of dummyUsers) {
+    if (!dummy) {
+      continue;
+    }
+
+    const shouldSuperLike = dummy.githubUsername === 'wasabi49-dummy-3';
+    const updatedDummy = {
+      ...dummy,
+      likedUserIds: shouldSuperLike
+        ? normalizeArray(dummy.likedUserIds)
+        : addUnique(normalizeArray(dummy.likedUserIds), wasabi.id),
+      superLikedUserIds: shouldSuperLike
+        ? addUnique(normalizeArray(dummy.superLikedUserIds), wasabi.id)
+        : normalizeArray(dummy.superLikedUserIds),
+      nopedUserIds: normalizeArray(dummy.nopedUserIds).filter((id) => id !== wasabi.id)
+    };
+
+    const dummyLikesWasabi = normalizeArray(updatedDummy.likedUserIds).includes(wasabi.id)
+      || normalizeArray(updatedDummy.superLikedUserIds).includes(wasabi.id);
+    const wasabiLikesDummy = wasabiLikes.includes(dummy.id) || wasabiSuperLikes.includes(dummy.id);
+
+    if (!dummyLikesWasabi || !wasabiLikesDummy) {
+      await saveUser(updatedDummy);
+      continue;
+    }
+
+    wasabiMatches = addUnique(wasabiMatches, dummy.id);
+    updatedDummy.matches = addUnique(normalizeArray(updatedDummy.matches), wasabi.id);
+    await saveUser(updatedDummy);
+  }
+
+  await saveUser({
+    ...wasabi,
+    matches: wasabiMatches
+  });
+};
 
 const initDatabase = async () => {
   await run(`CREATE TABLE IF NOT EXISTS users (
@@ -183,6 +346,8 @@ const initDatabase = async () => {
       ]);
     }
   }
+
+  await ensureWasabiFixtures();
 };
 
 const getUserById = async (id) => {

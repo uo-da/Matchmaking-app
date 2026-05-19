@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { getUserImageCandidates, loadNextImageCandidate } from '../utils/userImage';
 
 /**
  * @param {{ currentUser: Object, users: Object[], matchedUserIds: Set<string>, onSelectMatch: (matchId: string) => void }} props
@@ -45,10 +46,11 @@ function MatchList({ currentUser, users, matchedUserIds, onSelectMatch }) {
               >
                 <img
                   className="likes-thumb__image"
-                  src={`https://github.com/${user.githubUsername}.png?size=260`}
+                  src={getUserImageCandidates(user, 260)[0]}
                   alt={user.displayName}
+                  data-candidate-index="0"
                   onError={(event) => {
-                    event.currentTarget.src = 'https://via.placeholder.com/180?text=No+Image';
+                    loadNextImageCandidate(event, getUserImageCandidates(user, 260));
                   }}
                 />
               </button>
@@ -77,10 +79,11 @@ function MatchList({ currentUser, users, matchedUserIds, onSelectMatch }) {
               >
                 <img
                   className="likes-thumb__image"
-                  src={`https://github.com/${user.githubUsername}.png?size=260`}
+                  src={getUserImageCandidates(user, 260)[0]}
                   alt={user.displayName}
+                  data-candidate-index="0"
                   onError={(event) => {
-                    event.currentTarget.src = 'https://via.placeholder.com/180?text=No+Image';
+                    loadNextImageCandidate(event, getUserImageCandidates(user, 260));
                   }}
                 />
               </button>
