@@ -6,7 +6,7 @@ const yearOptions = Array.from({ length: 20 }, (_, index) => index + 1);
 /**
  * @param {{ user: Object, onSave: (profile: Object) => void }} props
  */
-function ProfileEditor({ user, onSave }) {
+function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
   const [profile, setProfile] = useState({
     displayName: user.displayName || '',
     bio: user.bio || '',
@@ -71,6 +71,9 @@ function ProfileEditor({ user, onSave }) {
   const validateProfile = () => {
     const newErrors = {};
     const tags = profile.stackTags.split(',').map((tag) => tag.trim()).filter(Boolean);
+    if (isInitialRegistration && (!profile.photoUrls || profile.photoUrls.length === 0)) {
+      newErrors.photos = 'プロフィール画像を最低1枚以上登録してください。';
+    }
     if (tags.length === 0) {
       newErrors.stackTags = '技術スタックを少なくとも1つ入力してください。';
     }
@@ -98,7 +101,10 @@ function ProfileEditor({ user, onSave }) {
 
   return (
     <div className="profile-card">
-      <h2 className="profile-card__title">プロフィール</h2>
+      <h2 className="profile-card__title">{isInitialRegistration ? '初期登録' : 'プロフィール'}</h2>
+      {isInitialRegistration && (
+        <p className="profile-card__subtitle">まずは最低1枚以上のプロフィール画像を登録し、経験年数と技術タグを入力してください。</p>
+      )}
       <form onSubmit={handleSubmit} className="profile-card__form">
         <div className="profile-card__photos">
           {photos.map((photo, index) => (
@@ -131,7 +137,10 @@ function ProfileEditor({ user, onSave }) {
           ))}
         </div>
 
-        <p className="profile-card__photo-note">最低2枚の画像を登録してください</p>
+        <p className="profile-card__photo-note">
+          {isInitialRegistration ? 'まずは最低1枚の画像を登録してください。' : '最低2枚の画像を登録してください。'}
+        </p>
+        {errors.photos && <div className="profile-card__error">{errors.photos}</div>}
 
         <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
 
@@ -153,6 +162,10 @@ function ProfileEditor({ user, onSave }) {
               <option key={year} value={year}>{year}年</option>
             ))}
           </select>
+          {isInitialRegistration && !profile.experienceYears && (
+            <div className="profile-card__warning">経験年数を入力してください。</div>
+          )}
+          {errors.experienceYears && <div className="profile-card__error">{errors.experienceYears}</div>}
         </div>
 
         <div className="profile-card__field">
@@ -176,6 +189,9 @@ function ProfileEditor({ user, onSave }) {
             onChange={handleChange}
             placeholder="カンマ区切りでタグを登録(例) Java, AWS,"
           />
+          {isInitialRegistration && !profile.stackTags.trim() && (
+            <div className="profile-card__warning">技術タグを少なくとも1つ入力してください。</div>
+          )}
           {errors.stackTags && <div className="profile-card__error">{errors.stackTags}</div>}
         </div>
 
