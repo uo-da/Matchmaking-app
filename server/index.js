@@ -597,6 +597,7 @@ app.post('/auth/logout', (req, res) => {
       return res.status(500).json({ error: 'Logout failed' });
     }
     req.session.destroy(() => {
+      res.clearCookie('connect.sid');
       res.json({ success: true });
     });
   });

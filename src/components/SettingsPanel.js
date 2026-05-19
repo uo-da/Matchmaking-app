@@ -20,9 +20,9 @@ const techStacks = [
 const genderOptions = ['女性', '男性'];
 
 /**
- * @param {{ filter: Object, onFilterChange: Function }} props
+ * @param {{ filter: Object, onFilterChange: Function, onLogout?: Function }} props
  */
-function SettingsPanel({ filter, onFilterChange }) {
+function SettingsPanel({ filter, onFilterChange, onLogout }) {
   const [isScoutNg, setIsScoutNg] = useState(filter.excludeScoutNg ?? true);
   const [minAge, setMinAge] = useState(filter.minAge ?? 18);
   const [maxAge, setMaxAge] = useState(filter.maxAge ?? 80);
@@ -213,7 +213,11 @@ function SettingsPanel({ filter, onFilterChange }) {
         <button
           type="button"
           className="settings-account-button"
-          onClick={() => window.alert('ログアウト機能は準備中です。')}
+          onClick={() => {
+            if (typeof onLogout === 'function') {
+              onLogout();
+            }
+          }}
         >
           ログアウト
         </button>

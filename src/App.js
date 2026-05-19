@@ -371,6 +371,33 @@ function App() {
     setSelectedTab('users');
   };
 
+  const handleLogout = async () => {
+    const didLogout = await authService.logout();
+
+    storageService.clearCurrentSession();
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem(VIEW_STATE_KEY);
+      } catch {
+        // ignore write errors
+      }
+    }
+    setCurrentUser(null);
+    setSelectedTab('users');
+    setSelectedMatchId(null);
+    setMessagesByMatchIdCache({});
+    setMatchModal(null);
+    setNotifications([]);
+    setShowNotificationList(false);
+    setIsViewStateHydrated(false);
+    setAuthError(false);
+    prefetchedSessionUserRef.current = null;
+
+    if (!didLogout) {
+      window.alert('サーバー側のログアウトに失敗しました。再ログイン状態が残る場合は再読み込みしてください。');
+    }
+  };
+
   const handleAgeConfirm = async (age) => {
     if (!currentUser) {
       console.error('No current user for age verification');
@@ -591,7 +618,13 @@ function App() {
       )}
       <main className={`app-main ${isChatDetail ? 'app-main--chat-detail' : ''}`}>
         {selectedTab === 'profile' && <ProfileEditor user={currentUser} onSave={handleProfileSave} />}
-        {selectedTab === 'settings' && <SettingsPanel filter={filter} onFilterChange={setFilter} />}
+        {selectedTab === 'settings' && (
+          <SettingsPanel
+            filter={filter}
+            onFilterChange={setFilter}
+            onLogout={handleLogout}
+          />
+        )}
         {selectedTab === 'users' && (
           <TinderDeck
             currentUser={currentUser}
