@@ -184,6 +184,7 @@ function App() {
     const targetUser = await storageService.getUserById(targetId);
     const targetLikedCurrent = targetUser
       && ((targetUser.likedUserIds || []).includes(currentUser.id) || (targetUser.superLikedUserIds || []).includes(currentUser.id));
+
     if (targetLikedCurrent) {
       // マッチ成立の場合は通知を追加
       storageService.addNotification('match', currentUser.id, targetId);
@@ -349,7 +350,7 @@ function App() {
       {matchModal && (
         <div className="modal-overlay" onClick={() => setMatchModal(null)}>
           <div className="match-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="match-modal__hearts">💗</div>
+            <div className="match-modal__hearts">💖🥰💖</div>
             <h2 className="match-modal__title">It's a Match!</h2>
             <div className="match-modal__photos">
               <img
