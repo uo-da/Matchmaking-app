@@ -1,6 +1,8 @@
 const CHAT_PREFIX = 'matchmaking_chat_';
+const CHAT_EVENT_KEY = 'matchmaking_chat_event';
 
 const API_BASE = process.env.REACT_APP_API_BASE || '';
+const isLocalMode = process.env.NODE_ENV !== 'production';
 
 const getFallbackApiBase = () => {
   if (API_BASE) {
@@ -45,6 +47,32 @@ const fetchJson = async (path, options = {}) => {
 
 let socket = null;
 const listeners = new Set();
+
+const readLocalMessages = (matchKey) => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+  const key = CHAT_PREFIX + matchKey;
+  try {
+    const raw = window.localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalMessages = (matchKey, messages) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const key = CHAT_PREFIX + matchKey;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(messages));
+  } catch {
+    // ignore write errors
+  }
+};
 
 const connectWebSocket = () => {
   if (socket && socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING) {
@@ -91,6 +119,9 @@ const chatService = {
   },
 
   async seedSampleMessages() {
+    if (!isLocalMode || typeof window === 'undefined') {
+      return;
+    }
     const matchKey = this.getMatchKey('user-1', 'user-2');
     const storageKey = CHAT_PREFIX + matchKey;
     if (window.localStorage.getItem(storageKey)) {
@@ -116,22 +147,16 @@ const chatService = {
   },
 
   async getMessages(userId, matchId) {
-    if (process.env.NODE_ENV === 'test') {
-      const key = CHAT_PREFIX + this.getMatchKey(userId, matchId);
-      try {
-        const raw = window.localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : [];
-      } catch {
-        return [];
-      }
+    if (isLocalMode) {
+      const matchKey = this.getMatchKey(userId, matchId);
+      return readLocalMessages(matchKey);
     }
     return fetchJson(`/api/chats/${matchId}/messages`);
   },
 
   async sendMessage(senderId, receiverId, text) {
-    if (process.env.NODE_ENV === 'test') {
+    if (isLocalMode) {
       const matchKey = this.getMatchKey(senderId, receiverId);
-      const key = CHAT_PREFIX + matchKey;
       const messages = await this.getMessages(senderId, receiverId);
       const message = {
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
@@ -144,7 +169,7 @@ const chatService = {
         type: 'message'
       };
       const next = [...messages, message];
-      window.localStorage.setItem(key, JSON.stringify(next));
+      writeLocalMessages(matchKey, next);
       this.notify(message);
       return message;
     }
@@ -155,9 +180,8 @@ const chatService = {
   },
 
   async markMessagesAsRead(userId, matchId) {
-    if (process.env.NODE_ENV === 'test') {
+    if (isLocalMode) {
       const matchKey = this.getMatchKey(userId, matchId);
-      const key = CHAT_PREFIX + matchKey;
       const messages = await this.getMessages(userId, matchId);
       let changed = false;
       const updated = messages.map((message) => {
@@ -168,7 +192,7 @@ const chatService = {
         return message;
       });
       if (changed) {
-        window.localStorage.setItem(key, JSON.stringify(updated));
+        writeLocalMessages(matchKey, updated);
         this.notify({
           type: 'read',
           matchKey,
@@ -185,20 +209,20 @@ const chatService = {
   },
 
   notify(message) {
-    if (process.env.NODE_ENV === 'test') {
+    if (isLocalMode) {
       const payload = { ...message, timestamp: Date.now() };
       if (typeof BroadcastChannel !== 'undefined') {
         const channel = new BroadcastChannel('matchmaking-chat');
         channel.postMessage(payload);
         channel.close();
       } else {
-        window.localStorage.setItem('matchmaking_chat_event', JSON.stringify(payload));
+        window.localStorage.setItem(CHAT_EVENT_KEY, JSON.stringify(payload));
       }
     }
   },
 
   subscribe(callback) {
-    if (process.env.NODE_ENV === 'test') {
+    if (isLocalMode) {
       if (typeof BroadcastChannel !== 'undefined') {
         const channel = new BroadcastChannel('matchmaking-chat');
         channel.onmessage = (event) => callback(event.data);
@@ -208,7 +232,7 @@ const chatService = {
       }
 
       const handler = (event) => {
-        if (event.key === 'matchmaking_chat_event' && event.newValue) {
+        if (event.key === CHAT_EVENT_KEY && event.newValue) {
           callback(JSON.parse(event.newValue));
         }
       };

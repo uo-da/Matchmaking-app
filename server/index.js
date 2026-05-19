@@ -271,6 +271,15 @@ const initDatabase = async () => {
     type TEXT DEFAULT 'message'
   )`);
 
+  await run(`CREATE TABLE IF NOT EXISTS collab_files (
+    id TEXT PRIMARY KEY,
+    matchKey TEXT,
+    name TEXT,
+    content TEXT,
+    updatedBy TEXT,
+    updatedAt INTEGER
+  )`);
+
   const row = await get('SELECT COUNT(*) AS count FROM users');
   if (row.count === 0) {
     const initialUsers = [
@@ -442,6 +451,87 @@ const markChatMessagesRead = async (userId, matchId) => {
   const matchKey = getMatchKey(userId, matchId);
   await run('UPDATE chat_messages SET isRead = 1 WHERE matchKey = ? AND receiverId = ? AND isRead = 0', [matchKey, userId]);
   return getMessagesForMatch(userId, matchId);
+};
+
+const getEditorFilesForMatch = async (userId, matchId) => {
+  const matchKey = getMatchKey(userId, matchId);
+  const rows = await all('SELECT * FROM collab_files WHERE matchKey = ? ORDER BY updatedAt ASC', [matchKey]);
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    content: row.content || '',
+    updatedBy: row.updatedBy,
+    updatedAt: row.updatedAt,
+    matchKey: row.matchKey
+  }));
+};
+
+const createEditorFile = async ({ userId, matchId, name }) => {
+  const trimmedName = typeof name === 'string' && name.trim() ? name.trim().slice(0, 80) : 'memo.txt';
+  const file = {
+    id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    matchKey: getMatchKey(userId, matchId),
+    name: trimmedName,
+    content: '',
+    updatedBy: userId,
+    updatedAt: Date.now()
+  };
+
+  await run(`INSERT INTO collab_files (id, matchKey, name, content, updatedBy, updatedAt)
+    VALUES (?, ?, ?, ?, ?, ?)`, [
+    file.id,
+    file.matchKey,
+    file.name,
+    file.content,
+    file.updatedBy,
+    file.updatedAt
+  ]);
+
+  return file;
+};
+
+const updateEditorFile = async ({ userId, matchId, fileId, name, content }) => {
+  const matchKey = getMatchKey(userId, matchId);
+  const existing = await get('SELECT * FROM collab_files WHERE id = ? AND matchKey = ?', [fileId, matchKey]);
+  if (!existing) {
+    return null;
+  }
+
+  const nextName = typeof name === 'string' && name.trim()
+    ? name.trim().slice(0, 80)
+    : existing.name;
+  const nextContent = typeof content === 'string' ? content : (existing.content || '');
+  const updatedAt = Date.now();
+  await run('UPDATE collab_files SET name = ?, content = ?, updatedBy = ?, updatedAt = ? WHERE id = ?', [
+    nextName,
+    nextContent,
+    userId,
+    updatedAt,
+    fileId
+  ]);
+
+  return {
+    id: fileId,
+    matchKey,
+    name: nextName,
+    content: nextContent,
+    updatedBy: userId,
+    updatedAt
+  };
+};
+
+const deleteEditorFile = async ({ userId, matchId, fileId }) => {
+  const matchKey = getMatchKey(userId, matchId);
+  const existing = await get('SELECT * FROM collab_files WHERE id = ? AND matchKey = ?', [fileId, matchKey]);
+  if (!existing) {
+    return null;
+  }
+
+  await run('DELETE FROM collab_files WHERE id = ? AND matchKey = ?', [fileId, matchKey]);
+  return {
+    id: fileId,
+    matchKey
+  };
 };
 
 const ensureAuthenticated = (req, res, next) => {
@@ -651,6 +741,54 @@ app.post('/api/chats/:matchId/read', ensureAuthenticated, async (req, res) => {
   const messages = await markChatMessagesRead(req.user.id, req.params.matchId);
   broadcastMessage({ type: 'read', matchKey: getMatchKey(req.user.id, req.params.matchId), readBy: req.user.id, timestamp: Date.now() });
   res.json(messages);
+});
+
+app.get('/api/chats/:matchId/editor/files', ensureAuthenticated, async (req, res) => {
+  const files = await getEditorFilesForMatch(req.user.id, req.params.matchId);
+  res.json(files);
+});
+
+app.post('/api/chats/:matchId/editor/files', ensureAuthenticated, async (req, res) => {
+  const { name } = req.body || {};
+  const file = await createEditorFile({
+    userId: req.user.id,
+    matchId: req.params.matchId,
+    name
+  });
+  broadcastMessage({ type: 'editor:file-created', matchKey: file.matchKey, file });
+  res.json(file);
+});
+
+app.put('/api/chats/:matchId/editor/files/:fileId', ensureAuthenticated, async (req, res) => {
+  const file = await updateEditorFile({
+    userId: req.user.id,
+    matchId: req.params.matchId,
+    fileId: req.params.fileId,
+    name: req.body?.name,
+    content: req.body?.content
+  });
+
+  if (!file) {
+    return res.status(404).json({ error: 'Editor file not found' });
+  }
+
+  broadcastMessage({ type: 'editor:file-updated', matchKey: file.matchKey, file });
+  res.json(file);
+});
+
+app.delete('/api/chats/:matchId/editor/files/:fileId', ensureAuthenticated, async (req, res) => {
+  const removed = await deleteEditorFile({
+    userId: req.user.id,
+    matchId: req.params.matchId,
+    fileId: req.params.fileId
+  });
+
+  if (!removed) {
+    return res.status(404).json({ error: 'Editor file not found' });
+  }
+
+  broadcastMessage({ type: 'editor:file-deleted', matchKey: removed.matchKey, fileId: removed.id });
+  res.json(removed);
 });
 
 const server = http.createServer(app);
