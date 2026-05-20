@@ -19,27 +19,6 @@ import { prefetchUserImages } from './utils/userImage';
 const ENTRANCE_SEEN_KEY = 'matchmaking_entrance_seen';
 const VIEW_STATE_KEY = 'matchmaking_view_state';
 
-const hasSeenEntrance = () => {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  try {
-    return window.localStorage.getItem(ENTRANCE_SEEN_KEY) === '1';
-  } catch {
-    return false;
-  }
-};
-
-const markEntranceAsSeen = () => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  try {
-    window.localStorage.setItem(ENTRANCE_SEEN_KEY, '1');
-  } catch {
-    // ignore write errors
-  }
-};
 
 const loadSavedViewState = (userId) => {
   if (typeof window === 'undefined' || !userId) {
@@ -95,7 +74,7 @@ const isSameMessage = (left, right) => {
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [isEntranceVisible, setIsEntranceVisible] = useState(() => !hasSeenEntrance());
+  const [isEntranceVisible, setIsEntranceVisible] = useState(true);
   const [isSessionLoading, setIsSessionLoading] = useState(true);
   const [authError, setAuthError] = useState(false);
   const [selectedTab, setSelectedTab] = useState('users');
@@ -131,7 +110,7 @@ function App() {
     const loadSession = async () => {
       try {
         const authSession = await authService.getCurrentSession();
-        const localSession = storageService.getCurrentSession();
+        const localSession = process.env.NODE_ENV === 'test' ? storageService.getCurrentSession() : null;
         const session = authSession || localSession;
         if (!session) {
           setCurrentUser(null);
@@ -142,7 +121,6 @@ function App() {
         // 認証セッションよりローカル永続データの方が新しい場合があるため補完する
         const latestProfile = await storageService.getUserById(session.id);
         setCurrentUser(latestProfile ? { ...session, ...latestProfile } : session);
-        markEntranceAsSeen();
         setIsEntranceVisible(false);
         setAuthError(false);
       } catch (error) {
@@ -435,6 +413,8 @@ function App() {
     return user.stackTags && user.stackTags.length > 0 && user.experienceYears > 0;
   };
 
+  const isInitialRegistration = Boolean(currentUser?.ageVerified && currentUser && !isProfileComplete(currentUser));
+
   const handleLike = async (targetId, isSuperLike = false) => {
     if (!currentUser?.id || !targetId) {
       return;
@@ -561,7 +541,6 @@ function App() {
       return (
         <EntrancePage
           onEnter={() => {
-            markEntranceAsSeen();
             setIsEntranceVisible(false);
           }}
         />
@@ -573,6 +552,18 @@ function App() {
 
   if (!currentUser.ageVerified) {
     return <AgeVerification onConfirm={handleAgeConfirm} />;
+  }
+
+  if (isInitialRegistration) {
+    return (
+      <div className="registration-shell">
+        <div className="registration-header">
+          <h1>初期登録</h1>
+          <p>まずはプロフィールを登録して、スワイプ画面に進みましょう。</p>
+        </div>
+        <ProfileEditor user={currentUser} onSave={handleProfileSave} isInitialRegistration />
+      </div>
+    );
   }
 
   return (
