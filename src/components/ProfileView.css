@@ -1,0 +1,68 @@
+/* ProfileView specific styles - avoid overriding global .profile-card */
+
+.profile-card img {
+  display: block;
+}
+
+.icon-button {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 6px;
+}
+
+.tag {
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: #f5f5f5;
+  font-size: 13px;
+}
+
+.github-calendar__wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.github-calendar__wrap img {
+  height: 140px;
+  display: block;
+}
+
+.profile-view__editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: calc(100vh - 120px);
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding: 18px 0 24px;
+  box-sizing: border-box;
+}
+
+.profile-view__editor .profile-card {
+  width: min(720px, 100%);
+  margin: 0;
+  min-height: auto;
+}
+
+.profile-view__editor .profile-card__save-button {
+  margin-bottom: 0;
+}
+
+.profile-view__editor .profile-card__form {
+  margin-bottom: 0;
+}
+
+.profile-view__editor::-webkit-scrollbar {
+  width: 8px;
+}
+
+.profile-view__editor::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .github-calendar__wrap img { height: 100px; }
+}

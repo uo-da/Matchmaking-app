@@ -792,6 +792,8 @@ app.delete('/api/chats/:matchId/editor/files/:fileId', ensureAuthenticated, asyn
   res.json(removed);
 });
 
+
+
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 

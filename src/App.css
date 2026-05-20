@@ -2402,30 +2402,30 @@ button.superlike {
 }
 
 .profile-card {
-  max-width: 620px;
-  margin: 12px auto 0;
-  padding: 20px;
-  border-radius: 28px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  max-width: 720px;
+  margin: 24px auto 8px;
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
   background: #ffffff;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
-  transform: translateY(-40px);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  transform: translateY(-18px);
 }
 
 @media (max-width: 1024px) {
   .profile-card {
-    max-width: 440px;
-    margin: 16px auto 0;
-    padding: 18px;
-    transform: translateY(-20px);
+    max-width: 520px;
+    margin: 28px auto 8px;
+    padding: 22px;
+    transform: translateY(-24px);
   }
 }
 
 /* モバイルデバイスでのプロフィールカード調整 */
 @media (max-width: 768px) {
   .profile-card {
-    max-width: 90vw;
-    margin: 20px auto;
+    max-width: 92vw;
+    margin: 20px auto 12px;
     padding: 16px;
     transform: translateY(0);
   }
