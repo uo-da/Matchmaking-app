@@ -101,14 +101,19 @@ describe('authService', () => {
     expect(errorSpy).toHaveBeenCalled();
   });
 
-  test('demoLogin in development mode stores generated user', async () => {
+  test('demoLogin in development mode calls guest API', async () => {
     process.env.NODE_ENV = 'development';
     jest.spyOn(Date, 'now').mockReturnValue(123456);
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 'guest-dev-1' })
+    });
 
     const user = await authService.demoLogin();
 
-    expect(user.id).toBe('demo-123456');
-    expect(window.localStorage.getItem('currentUser')).not.toBeNull();
+    expect(user).toEqual({ id: 'guest-dev-1' });
+    expect(window.localStorage.getItem('currentUser')).toBeNull();
+    expect(global.fetch).toHaveBeenCalled();
   });
 
   test('demoLogin in production mode returns created guest user or null', async () => {

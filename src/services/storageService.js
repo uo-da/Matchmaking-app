@@ -1,5 +1,8 @@
 const API_BASE = process.env.REACT_APP_API_BASE || '';
-const isLocalMode = process.env.NODE_ENV !== 'production';
+const isLocalMode = process.env.NODE_ENV === 'test';
+const CHAT_STORAGE_PREFIX = 'matchmaking_chat_';
+const EDITOR_STORAGE_PREFIX = 'matchmaking_editor_files_';
+const DEMO_USER_ID_PREFIX = 'demo-';
 
 const getFallbackApiBase = () => {
   if (API_BASE) {
@@ -311,6 +314,38 @@ const fetchJson = async (path, options = {}) => {
   }
 };
 
+const requestDeleteAccount = async (userId) => {
+  const encodedUserId = encodeURIComponent(userId);
+  const path = `/api/users/${encodedUserId}`;
+  const bases = Array.from(new Set([API_BASE, getFallbackApiBase()].filter((base) => typeof base === 'string')));
+  if (bases.length === 0) {
+    bases.push('');
+  }
+
+  let lastError = null;
+  for (const base of bases) {
+    try {
+      const response = await fetch(`${base}${path}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        return true;
+      }
+      const message = await response.text();
+      lastError = new Error(`API request failed: ${response.status} ${message}`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('Failed to delete account');
+};
+
 const storageService = {
   getUsers() {
     if (isLocalMode) {
@@ -377,6 +412,14 @@ const storageService = {
   saveCurrentSession(user) {
     if (isLocalMode) {
       window.localStorage.setItem('matchmaking_session', JSON.stringify(user));
+      window.localStorage.setItem('currentUser', JSON.stringify(user));
+      const users = this.getUsers();
+      const dedupedUsers = users.filter((item) => (
+        item.id !== user.id
+        && (!user.githubUsername || item.githubUsername !== user.githubUsername)
+      ));
+      const nextUsers = [...dedupedUsers, user];
+      this.setUsers(nextUsers);
       return user;
     }
     return user;
@@ -385,6 +428,96 @@ const storageService = {
   clearCurrentSession() {
     if (isLocalMode) {
       window.localStorage.removeItem('matchmaking_session');
+      window.localStorage.removeItem('currentUser');
+    }
+  },
+
+  async deleteAccount(userId) {
+    if (!userId) {
+      return false;
+    }
+    const isDemoUser = String(userId).startsWith(DEMO_USER_ID_PREFIX);
+
+    const deleteLocalAccount = () => {
+      const users = this.getUsers();
+      const targetUser = users.find((user) => user.id === userId);
+      if (!targetUser) {
+        return false;
+      }
+
+      const removedIds = new Set(
+        users
+          .filter((user) => user.id === userId || user.githubUsername === targetUser.githubUsername)
+          .map((user) => user.id)
+      );
+      const counterpartIds = users
+        .filter((user) => !removedIds.has(user.id))
+        .map((user) => user.id);
+
+      const removeDeletedIds = (value) => (
+        Array.isArray(value) ? value.filter((id) => !removedIds.has(id)) : []
+      );
+      const updatedUsers = users
+        .filter((user) => !removedIds.has(user.id))
+        .map((user) => ({
+          ...user,
+          likedUserIds: removeDeletedIds(user.likedUserIds),
+          superLikedUserIds: removeDeletedIds(user.superLikedUserIds),
+          nopedUserIds: removeDeletedIds(user.nopedUserIds),
+          matches: removeDeletedIds(user.matches)
+        }));
+      this.setUsers(updatedUsers);
+
+      removedIds.forEach((removedId) => {
+        counterpartIds.forEach((counterpartId) => {
+          const matchKey = [removedId, counterpartId].sort().join('-');
+          window.localStorage.removeItem(`${CHAT_STORAGE_PREFIX}${matchKey}`);
+          window.localStorage.removeItem(`${EDITOR_STORAGE_PREFIX}${matchKey}`);
+        });
+      });
+
+      const notifications = this.getAllNotifications().filter((notification) => (
+        !removedIds.has(notification.fromUserId) && !removedIds.has(notification.toUserId)
+      ));
+      window.localStorage.setItem('matchmaking_notifications', JSON.stringify(notifications));
+
+      const currentRaw = window.localStorage.getItem('currentUser');
+      if (currentRaw) {
+        try {
+          const currentUser = JSON.parse(currentRaw);
+          if (currentUser?.id && removedIds.has(currentUser.id)) {
+            window.localStorage.removeItem('currentUser');
+          }
+        } catch {
+          window.localStorage.removeItem('currentUser');
+        }
+      }
+      const sessionRaw = window.localStorage.getItem('matchmaking_session');
+      if (sessionRaw) {
+        try {
+          const sessionUser = JSON.parse(sessionRaw);
+          if (sessionUser?.id && removedIds.has(sessionUser.id)) {
+            this.clearCurrentSession();
+          }
+        } catch {
+          this.clearCurrentSession();
+        }
+      }
+
+      return true;
+    };
+
+    try {
+      await requestDeleteAccount(userId);
+      if (isLocalMode) {
+        deleteLocalAccount();
+      }
+      return true;
+    } catch (error) {
+      if (isLocalMode && isDemoUser) {
+        return deleteLocalAccount();
+      }
+      throw error;
     }
   },
 
@@ -538,7 +671,7 @@ const storageService = {
   },
 
   // 通知関連メソッド
-  getNotifications(userId) {
+  async getNotifications(userId) {
     if (isLocalMode) {
       try {
         const raw = window.localStorage.getItem('matchmaking_notifications');
@@ -548,11 +681,10 @@ const storageService = {
         return [];
       }
     }
-    // TODO: API実装
-    return [];
+    return fetchJson('/api/notifications');
   },
 
-  addNotification(type, fromUserId, toUserId) {
+  async addNotification(type, fromUserId, toUserId) {
     if (isLocalMode) {
       const notifications = this.getAllNotifications();
       const newNotification = {
@@ -567,11 +699,13 @@ const storageService = {
       window.localStorage.setItem('matchmaking_notifications', JSON.stringify(notifications));
       return newNotification;
     }
-    // TODO: API実装
-    return null;
+    return fetchJson('/api/notifications', {
+      method: 'POST',
+      body: JSON.stringify({ type, fromUserId, toUserId })
+    });
   },
 
-  markNotificationAsRead(notificationId) {
+  async markNotificationAsRead(notificationId) {
     if (isLocalMode) {
       const notifications = this.getAllNotifications();
       const updatedNotifications = notifications.map(notification =>
@@ -582,8 +716,10 @@ const storageService = {
       window.localStorage.setItem('matchmaking_notifications', JSON.stringify(updatedNotifications));
       return true;
     }
-    // TODO: API実装
-    return false;
+    await fetchJson(`/api/notifications/${encodeURIComponent(notificationId)}/read`, {
+      method: 'PATCH'
+    });
+    return true;
   },
 
   getAllNotifications() {

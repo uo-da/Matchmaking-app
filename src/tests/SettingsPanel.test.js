@@ -65,16 +65,20 @@ describe('SettingsPanel', () => {
     expect(onLogout).toHaveBeenCalledTimes(1);
   });
 
-  test('shows placeholder alert for delete account button', async () => {
+  test('calls delete account callback when delete account button is clicked', async () => {
     const user = userEvent.setup();
-    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    const onDeleteAccount = jest.fn();
 
-    render(<SettingsPanel filter={baseFilter} onFilterChange={jest.fn()} />);
+    render(
+      <SettingsPanel
+        filter={baseFilter}
+        onFilterChange={jest.fn()}
+        onDeleteAccount={onDeleteAccount}
+      />
+    );
 
     await user.click(screen.getByRole('button', { name: 'アカウント削除' }));
-    expect(alertSpy).toHaveBeenCalledWith('アカウント削除機能は準備中です。');
-
-    alertSpy.mockRestore();
+    expect(onDeleteAccount).toHaveBeenCalledTimes(1);
   });
 
   test('uses stackTag as initial selected stack when stackTags is empty', () => {

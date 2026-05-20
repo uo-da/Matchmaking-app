@@ -1,6 +1,7 @@
 import chatService from './chatService';
 
 const API_BASE = process.env.REACT_APP_API_BASE || '';
+const isLocalMode = process.env.NODE_ENV === 'test';
 const LOCAL_EDITOR_PREFIX = 'matchmaking_editor_files_';
 const LOCAL_EDITOR_EVENT_KEY = 'matchmaking_editor_event';
 
@@ -61,6 +62,9 @@ const readLocalFiles = (userId, matchId) => {
 };
 
 const writeLocalFiles = (userId, matchId, files) => {
+  if (!isLocalMode) {
+    return;
+  }
   if (typeof window === 'undefined') {
     return;
   }
@@ -72,6 +76,9 @@ const writeLocalFiles = (userId, matchId, files) => {
 };
 
 const emitLocalEditorEvent = (event) => {
+  if (!isLocalMode) {
+    return;
+  }
   if (typeof window === 'undefined') {
     return;
   }
@@ -105,12 +112,15 @@ const collabEditorService = {
     }
     try {
       const files = await fetchJson(`/api/chats/${matchId}/editor/files`);
-      if (Array.isArray(files)) {
+      if (isLocalMode && Array.isArray(files)) {
         writeLocalFiles(userId, matchId, files);
         return files;
       }
-      return [];
+      return Array.isArray(files) ? files : [];
     } catch {
+      if (!isLocalMode) {
+        throw new Error('Failed to load editor files');
+      }
       return readLocalFiles(userId, matchId);
     }
   },
@@ -124,13 +134,18 @@ const collabEditorService = {
         method: 'POST',
         body: JSON.stringify({ name })
       });
-      const localFiles = readLocalFiles(userId, matchId);
-      const nextLocalFiles = localFiles.some((file) => file.id === created.id)
-        ? localFiles.map((file) => (file.id === created.id ? created : file))
-        : [...localFiles, created];
-      writeLocalFiles(userId, matchId, nextLocalFiles);
+      if (isLocalMode) {
+        const localFiles = readLocalFiles(userId, matchId);
+        const nextLocalFiles = localFiles.some((file) => file.id === created.id)
+          ? localFiles.map((file) => (file.id === created.id ? created : file))
+          : [...localFiles, created];
+        writeLocalFiles(userId, matchId, nextLocalFiles);
+      }
       return created;
     } catch {
+      if (!isLocalMode) {
+        throw new Error('Failed to create editor file');
+      }
       const localFile = toLocalEditorFile(userId, matchId, {
         id: `local-file-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
         name: typeof name === 'string' && name.trim() ? name.trim() : 'memo.txt',
@@ -154,11 +169,16 @@ const collabEditorService = {
         method: 'PUT',
         body: JSON.stringify(payload || {})
       });
-      const localFiles = readLocalFiles(userId, matchId);
-      const nextLocalFiles = localFiles.map((file) => (file.id === fileId ? updated : file));
-      writeLocalFiles(userId, matchId, nextLocalFiles);
+      if (isLocalMode) {
+        const localFiles = readLocalFiles(userId, matchId);
+        const nextLocalFiles = localFiles.map((file) => (file.id === fileId ? updated : file));
+        writeLocalFiles(userId, matchId, nextLocalFiles);
+      }
       return updated;
     } catch {
+      if (!isLocalMode) {
+        throw new Error('Failed to update editor file');
+      }
       const localFiles = readLocalFiles(userId, matchId);
       const existing = localFiles.find((file) => file.id === fileId);
       if (!existing) {
@@ -186,11 +206,16 @@ const collabEditorService = {
       const removed = await fetchJson(`/api/chats/${matchId}/editor/files/${fileId}`, {
         method: 'DELETE'
       });
-      const localFiles = readLocalFiles(userId, matchId);
-      const nextLocalFiles = localFiles.filter((file) => file.id !== fileId);
-      writeLocalFiles(userId, matchId, nextLocalFiles);
+      if (isLocalMode) {
+        const localFiles = readLocalFiles(userId, matchId);
+        const nextLocalFiles = localFiles.filter((file) => file.id !== fileId);
+        writeLocalFiles(userId, matchId, nextLocalFiles);
+      }
       return removed;
     } catch {
+      if (!isLocalMode) {
+        throw new Error('Failed to delete editor file');
+      }
       const localFiles = readLocalFiles(userId, matchId);
       const exists = localFiles.some((file) => file.id === fileId);
       if (!exists) {
@@ -225,7 +250,7 @@ const collabEditorService = {
     let broadcastChannel = null;
     let storageHandler = null;
 
-    if (typeof window !== 'undefined') {
+    if (isLocalMode && typeof window !== 'undefined') {
       if (typeof BroadcastChannel !== 'undefined') {
         broadcastChannel = new BroadcastChannel('matchmaking-editor');
         broadcastChannel.onmessage = (event) => {

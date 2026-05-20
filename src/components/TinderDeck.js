@@ -42,6 +42,7 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
   const [exitTransform, setExitTransform] = useState(null);
+  const [dismissedUserIds, setDismissedUserIds] = useState(() => new Set());
   const [drag, setDrag] = useState({
     active: false,
     startX: 0,
@@ -51,7 +52,10 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
     source: null
   });
 
-  const filteredUsers = useMemo(() => users, [users]);
+  const filteredUsers = useMemo(
+    () => users.filter((user) => !dismissedUserIds.has(user.id)),
+    [users, dismissedUserIds]
+  );
   const currentUserCard = filteredUsers[currentIndex] || null;
   const nextUserCard = filteredUsers[currentIndex + 1] || null;
   const currentUserPhotos = useMemo(() => getUserImageUrls(currentUserCard), [currentUserCard]);
@@ -70,6 +74,22 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
       setCurrentIndex(Math.max(filteredUsers.length - 1, 0));
     }
   }, [filteredUsers.length, currentIndex]);
+
+  useEffect(() => {
+    const userIdSet = new Set(users.map((user) => user.id));
+    setDismissedUserIds((prev) => {
+      let changed = false;
+      const next = new Set();
+      prev.forEach((id) => {
+        if (userIdSet.has(id)) {
+          next.add(id);
+        } else {
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [users]);
 
   useEffect(() => {
     return () => {
@@ -111,15 +131,11 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
     setExitTransform(null);
   };
 
-  const handleNext = () => {
-    setCurrentIndex((value) => Math.min(value + 1, filteredUsers.length));
-    resetSwipeState();
-  };
-
   const executeSwipe = (action) => {
     if (!currentUserCard || isExiting) {
       return;
     }
+    const swipedUserId = currentUserCard.id;
 
     const viewportWidth = window.innerWidth || 1200;
     const viewportHeight = window.innerHeight || 800;
@@ -137,21 +153,22 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
       window.clearTimeout(exitTimerRef.current);
     }
     exitTimerRef.current = window.setTimeout(() => {
-      let shouldAdvanceFallback = false;
+      setDismissedUserIds((prev) => {
+        const next = new Set(prev);
+        next.add(swipedUserId);
+        return next;
+      });
+      resetSwipeState();
+
+      let actionPromise = Promise.resolve();
       if (action === 'like') {
-        onLike(currentUserCard.id);
+        actionPromise = Promise.resolve(onLike(swipedUserId));
       } else if (action === 'superlike') {
-        onLike(currentUserCard.id, true);
+        actionPromise = Promise.resolve(onLike(swipedUserId, true));
       } else if (action === 'nope' && typeof onNope === 'function') {
-        onNope(currentUserCard.id);
-      } else if (action === 'nope') {
-        shouldAdvanceFallback = true;
+        actionPromise = Promise.resolve(onNope(swipedUserId));
       }
-      if (shouldAdvanceFallback) {
-        handleNext();
-      } else {
-        resetSwipeState();
-      }
+      actionPromise.catch(() => {});
       exitTimerRef.current = null;
     }, 240);
   };

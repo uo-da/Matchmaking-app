@@ -20,9 +20,9 @@ const techStacks = [
 const genderOptions = ['女性', '男性'];
 
 /**
- * @param {{ filter: Object, onFilterChange: Function, onLogout?: Function }} props
+ * @param {{ filter: Object, onFilterChange: Function, onLogout?: Function, onDeleteAccount?: Function }} props
  */
-function SettingsPanel({ filter, onFilterChange, onLogout }) {
+function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
   const [isScoutNg, setIsScoutNg] = useState(filter.excludeScoutNg ?? true);
   const [minAge, setMinAge] = useState(filter.minAge ?? 18);
   const [maxAge, setMaxAge] = useState(filter.maxAge ?? 80);
@@ -224,7 +224,11 @@ function SettingsPanel({ filter, onFilterChange, onLogout }) {
         <button
           type="button"
           className="settings-account-button settings-account-button--danger"
-          onClick={() => window.alert('アカウント削除機能は準備中です。')}
+          onClick={() => {
+            if (typeof onDeleteAccount === 'function') {
+              onDeleteAccount();
+            }
+          }}
         >
           アカウント削除
         </button>

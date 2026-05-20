@@ -19,6 +19,14 @@ import { prefetchUserImages } from './utils/userImage';
 const ENTRANCE_SEEN_KEY = 'matchmaking_entrance_seen';
 const VIEW_STATE_KEY = 'matchmaking_view_state';
 
+const isUnauthorizedError = (error) => (
+  error instanceof Error
+  && (
+    error.message.includes('401')
+    || error.message.includes('Not authenticated')
+  )
+);
+
 
 const loadSavedViewState = (userId) => {
   if (typeof window === 'undefined' || !userId) {
@@ -72,6 +80,20 @@ const isSameMessage = (left, right) => {
   );
 };
 
+const upsertUser = (users, nextUser) => {
+  if (!nextUser?.id) {
+    return users;
+  }
+  const exists = users.some((user) => user.id === nextUser.id);
+  if (!exists) {
+    return [...users, nextUser];
+  }
+  return users.map((user) => (user.id === nextUser.id ? { ...user, ...nextUser } : user));
+};
+
+const normalizeArray = (value) => (Array.isArray(value) ? value : []);
+const addUnique = (list, value) => (list.includes(value) ? list : [...list, value]);
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isEntranceVisible, setIsEntranceVisible] = useState(true);
@@ -98,13 +120,101 @@ function App() {
   const [showNotificationList, setShowNotificationList] = useState(false);
   const notificationButtonRef = useRef(null);
   const prefetchedSessionUserRef = useRef(null);
+  const swipeQueueRef = useRef([]);
+  const swipeQueueProcessingRef = useRef(false);
+  const swipeQueueRetryTimerRef = useRef(null);
+
+  const scheduleSwipeQueueRetry = (delayMs) => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (swipeQueueRetryTimerRef.current) {
+      window.clearTimeout(swipeQueueRetryTimerRef.current);
+    }
+    swipeQueueRetryTimerRef.current = window.setTimeout(() => {
+      swipeQueueRetryTimerRef.current = null;
+      processSwipeQueue();
+    }, delayMs);
+  };
+
+  const processSwipeQueue = async () => {
+    if (swipeQueueProcessingRef.current) {
+      return;
+    }
+    swipeQueueProcessingRef.current = true;
+
+    try {
+      while (swipeQueueRef.current.length > 0) {
+        const task = swipeQueueRef.current[0];
+        const now = Date.now();
+        if (task.nextRetryAt && task.nextRetryAt > now) {
+          scheduleSwipeQueueRetry(task.nextRetryAt - now);
+          break;
+        }
+
+        try {
+          const saved = task.type === 'reaction'
+            ? await storageService.saveUserReaction(task.userId, task.targetId, task.isSuperLike)
+            : await storageService.saveUserNope(task.userId, task.targetId);
+
+          swipeQueueRef.current.shift();
+          if (saved) {
+            setCurrentUser((prev) => (prev?.id === saved.id ? { ...prev, ...saved } : prev));
+            setAllUsers((prev) => upsertUser(prev, saved));
+          }
+        } catch (error) {
+          const attempts = (task.attempts || 0) + 1;
+          const retryDelay = Math.min(30000, 1000 * (2 ** Math.min(attempts, 5)));
+          swipeQueueRef.current[0] = {
+            ...task,
+            attempts,
+            nextRetryAt: Date.now() + retryDelay
+          };
+          console.error('Queued swipe request failed. Retrying later:', error);
+          scheduleSwipeQueueRetry(retryDelay);
+          break;
+        }
+      }
+    } finally {
+      swipeQueueProcessingRef.current = false;
+    }
+  };
+
+  const enqueueSwipeTask = (task) => {
+    swipeQueueRef.current.push({
+      ...task,
+      attempts: 0,
+      nextRetryAt: 0
+    });
+    processSwipeQueue();
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const handleOnline = () => {
+      processSwipeQueue();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleOnline);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+        if (swipeQueueRetryTimerRef.current) {
+          window.clearTimeout(swipeQueueRetryTimerRef.current);
+        }
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const initializeData = async () => {
-      storageService.seedSampleData();
-      await chatService.seedSampleMessages();
-      const users = await storageService.getUsers();
-      setAllUsers(users);
+      try {
+        storageService.seedSampleData();
+        await chatService.seedSampleMessages();
+      } catch (error) {
+        console.error('Failed to initialize local caches:', error);
+      }
     };
 
     const loadSession = async () => {
@@ -198,23 +308,53 @@ function App() {
         const users = await storageService.getUsers();
         setAllUsers(users);
       } catch (error) {
-        console.error('Failed to load users:', error);
+        if (!isUnauthorizedError(error)) {
+          console.error('Failed to load users:', error);
+        }
         setAllUsers([]);
       }
     };
 
     if (process.env.NODE_ENV === 'test') {
       setAllUsers(storageService.getUsers());
-    } else {
-      loadUsers();
+      return;
     }
-  }, [refreshToggle]);
+
+    if (!currentUser?.id) {
+      setAllUsers([]);
+      return;
+    }
+
+    loadUsers();
+  }, [refreshToggle, currentUser?.id]);
 
   useEffect(() => {
-    if (currentUser) {
-      const userNotifications = storageService.getNotifications(currentUser.id);
-      setNotifications(userNotifications);
+    if (!currentUser?.id) {
+      setNotifications([]);
+      return;
     }
+
+    let isCancelled = false;
+    const loadNotifications = async () => {
+      try {
+        const userNotifications = await storageService.getNotifications(currentUser.id);
+        if (!isCancelled) {
+          setNotifications(Array.isArray(userNotifications) ? userNotifications : []);
+        }
+      } catch (error) {
+        if (!isUnauthorizedError(error)) {
+          console.error('Failed to load notifications:', error);
+        }
+        if (!isCancelled) {
+          setNotifications([]);
+        }
+      }
+    };
+
+    loadNotifications();
+    return () => {
+      isCancelled = true;
+    };
   }, [currentUser, refreshToggle]);
 
   const filteredUsers = useMemo(() => {
@@ -376,6 +516,57 @@ function App() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!currentUser?.id) {
+      return;
+    }
+
+    const shouldDelete = window.confirm('アカウントを削除します。プロフィール情報と関連データはすべて削除されます。よろしいですか？');
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      const result = await storageService.deleteAccount(currentUser.id);
+      if (!result) {
+        window.alert('アカウント削除に失敗しました。');
+        return;
+      }
+
+      // 削除APIがフォールバック経路を通る場合に備えて、サーバーセッションを明示的に破棄する。
+      await authService.logout();
+      storageService.clearCurrentSession();
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem('currentUser');
+          window.localStorage.removeItem(VIEW_STATE_KEY);
+        } catch {
+          // ignore write errors
+        }
+      }
+      setCurrentUser(null);
+      setSelectedTab('users');
+      setSelectedMatchId(null);
+      setMessagesByMatchIdCache({});
+      setMatchModal(null);
+      setNotifications([]);
+      setShowNotificationList(false);
+      setIsViewStateHydrated(false);
+      setAuthError(false);
+      prefetchedSessionUserRef.current = null;
+      setRefreshToggle((value) => !value);
+      if (typeof window !== 'undefined') {
+        window.location.replace(window.location.origin);
+        return;
+      }
+
+      window.alert('アカウントを削除しました。');
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      window.alert('アカウント削除に失敗しました。');
+    }
+  };
+
   const handleAgeConfirm = async (age) => {
     if (!currentUser) {
       console.error('No current user for age verification');
@@ -384,6 +575,7 @@ function App() {
     try {
       const updated = authService.verifyAge(currentUser, age);
       const saved = await storageService.saveUserProfile(updated);
+      setAllUsers((prev) => upsertUser(prev, saved));
       setCurrentUser(saved);
       // 年齢確認後にプロフィールが不完全ならプロフィール編集を強制
       if (!isProfileComplete(saved)) {
@@ -391,13 +583,15 @@ function App() {
       }
     } catch (error) {
       console.error('Failed to confirm age:', error);
-      window.alert('サーバーとの通信に失敗しました。しばらくしてからもう一度お試しください。');
+      const message = error instanceof Error ? error.message : '不明なエラー';
+      window.alert(`サーバーとの通信に失敗しました。しばらくしてからもう一度お試しください。\n${message}`);
     }
   };
 
   const handleProfileSave = async (profile) => {
     try {
       const updated = await storageService.saveUserProfile({ ...currentUser, ...profile });
+      setAllUsers((prev) => upsertUser(prev, updated));
       setCurrentUser(updated);
       // プロフィールが完全になったらusersタブに戻る
       if (isProfileComplete(updated)) {
@@ -405,7 +599,8 @@ function App() {
       }
     } catch (error) {
       console.error('Failed to save profile:', error);
-      window.alert('プロフィールの保存に失敗しました。');
+      const message = error instanceof Error ? error.message : '不明なエラー';
+      window.alert(`プロフィールの保存に失敗しました。\n${message}`);
     }
   };
 
@@ -415,48 +610,128 @@ function App() {
 
   const isInitialRegistration = Boolean(currentUser?.ageVerified && currentUser && !isProfileComplete(currentUser));
 
-  const handleLike = async (targetId, isSuperLike = false) => {
+  const handleLike = (targetId, isSuperLike = false) => {
     if (!currentUser?.id || !targetId) {
       return;
     }
-    const updated = await storageService.saveUserReaction(currentUser.id, targetId, isSuperLike);
-    if (!updated) {
-      setRefreshToggle((value) => !value);
-      return;
-    }
-    const refreshedUser = await storageService.getUserById(updated.id);
-    setCurrentUser(refreshedUser || updated);
-    setRefreshToggle((value) => !value);
-
-    // スーパーライクの場合は通知を追加
-    if (isSuperLike) {
-      storageService.addNotification('superLike', currentUser.id, targetId);
-    }
-
-    const targetUser = await storageService.getUserById(targetId);
+    const userId = currentUser.id;
+    const targetUser = allUsers.find((user) => user.id === targetId) || null;
     const targetLikedCurrent = targetUser
-      && ((targetUser.likedUserIds || []).includes(currentUser.id) || (targetUser.superLikedUserIds || []).includes(currentUser.id));
+      && (
+        normalizeArray(targetUser.likedUserIds).includes(userId)
+        || normalizeArray(targetUser.superLikedUserIds).includes(userId)
+      );
+
+    setCurrentUser((prev) => {
+      if (!prev || prev.id !== userId) {
+        return prev;
+      }
+      const likedUserIds = isSuperLike
+        ? normalizeArray(prev.likedUserIds)
+        : addUnique(normalizeArray(prev.likedUserIds), targetId);
+      const superLikedUserIds = isSuperLike
+        ? addUnique(normalizeArray(prev.superLikedUserIds), targetId)
+        : normalizeArray(prev.superLikedUserIds);
+      const nopedUserIds = normalizeArray(prev.nopedUserIds).filter((id) => id !== targetId);
+      const matches = targetLikedCurrent
+        ? addUnique(normalizeArray(prev.matches), targetId)
+        : normalizeArray(prev.matches);
+
+      return {
+        ...prev,
+        likedUserIds,
+        superLikedUserIds,
+        nopedUserIds,
+        matches
+      };
+    });
+
+    setAllUsers((prev) => prev.map((user) => {
+      if (user.id === userId) {
+        const likedUserIds = isSuperLike
+          ? normalizeArray(user.likedUserIds)
+          : addUnique(normalizeArray(user.likedUserIds), targetId);
+        const superLikedUserIds = isSuperLike
+          ? addUnique(normalizeArray(user.superLikedUserIds), targetId)
+          : normalizeArray(user.superLikedUserIds);
+        const nopedUserIds = normalizeArray(user.nopedUserIds).filter((id) => id !== targetId);
+        const matches = targetLikedCurrent
+          ? addUnique(normalizeArray(user.matches), targetId)
+          : normalizeArray(user.matches);
+        return {
+          ...user,
+          likedUserIds,
+          superLikedUserIds,
+          nopedUserIds,
+          matches
+        };
+      }
+      if (targetLikedCurrent && user.id === targetId) {
+        return {
+          ...user,
+          matches: addUnique(normalizeArray(user.matches), userId)
+        };
+      }
+      return user;
+    }));
+
+    if (isSuperLike) {
+      storageService.addNotification('superLike', userId, targetId).catch((error) => {
+        console.error('Failed to create superLike notification:', error);
+      });
+    }
 
     if (targetLikedCurrent) {
-      // マッチ成立の場合は通知を追加
-      storageService.addNotification('match', currentUser.id, targetId);
-      storageService.addNotification('match', targetId, currentUser.id);
-      setMatchModal(targetUser);
+      storageService.addNotification('match', userId, targetId).catch((error) => {
+        console.error('Failed to create match notification:', error);
+      });
+      storageService.addNotification('match', targetId, userId).catch((error) => {
+        console.error('Failed to create reverse match notification:', error);
+      });
+      if (targetUser) {
+        setMatchModal(targetUser);
+      }
     }
+
+    enqueueSwipeTask({
+      type: 'reaction',
+      userId,
+      targetId,
+      isSuperLike
+    });
   };
 
-  const handleNope = async (targetId) => {
+  const handleNope = (targetId) => {
     if (!currentUser?.id || !targetId) {
       return;
     }
-    const updated = await storageService.saveUserNope(currentUser.id, targetId);
-    if (!updated) {
-      setRefreshToggle((value) => !value);
-      return;
-    }
-    const refreshedUser = await storageService.getUserById(updated.id);
-    setCurrentUser(refreshedUser || updated);
-    setRefreshToggle((value) => !value);
+    const userId = currentUser.id;
+
+    setCurrentUser((prev) => {
+      if (!prev || prev.id !== userId) {
+        return prev;
+      }
+      return {
+        ...prev,
+        nopedUserIds: addUnique(normalizeArray(prev.nopedUserIds), targetId)
+      };
+    });
+
+    setAllUsers((prev) => prev.map((user) => {
+      if (user.id !== userId) {
+        return user;
+      }
+      return {
+        ...user,
+        nopedUserIds: addUnique(normalizeArray(user.nopedUserIds), targetId)
+      };
+    }));
+
+    enqueueSwipeTask({
+      type: 'nope',
+      userId,
+      targetId
+    });
   };
 
   const handleSelectMatch = (matchId) => {
@@ -526,7 +801,9 @@ function App() {
   }, [showNotificationList]);
 
   const handleMarkNotificationAsRead = (notificationId) => {
-    storageService.markNotificationAsRead(notificationId);
+    storageService.markNotificationAsRead(notificationId).catch((error) => {
+      console.error('Failed to mark notification as read:', error);
+    });
     setRefreshToggle((value) => !value);
   };
 
@@ -614,6 +891,7 @@ function App() {
             filter={filter}
             onFilterChange={setFilter}
             onLogout={handleLogout}
+            onDeleteAccount={handleDeleteAccount}
           />
         )}
         {selectedTab === 'users' && (
