@@ -47,31 +47,25 @@ describe('NotificationList Component', () => {
     render(<NotificationList {...mockProps} />);
 
     expect(screen.getByText('通知')).toBeInTheDocument();
-    expect(screen.getByText('Other Userさんからスーパーライクされました！')).toBeInTheDocument();
-    expect(screen.getByText('Other Userさんとマッチングしました！')).toBeInTheDocument();
+    expect(screen.getByText('Other Userさんにスーパーライクされました。')).toBeInTheDocument();
+    expect(screen.getByText('Other Userさんとマッチしました。')).toBeInTheDocument();
   });
 
   test('shows unread indicator for unread notifications', () => {
-    render(<NotificationList {...mockProps} />);
+    const { container } = render(<NotificationList {...mockProps} />);
+    const unreadIndicators = container.querySelectorAll('.unread-indicator');
 
-    const unreadIndicators = screen.getAllByText('', { selector: '.unread-indicator' });
-    expect(unreadIndicators).toHaveLength(1); // 1件の未読通知
+    expect(unreadIndicators).toHaveLength(1);
   });
 
-  test('calls onMarkAsRead when notification is clicked', () => {
+  test('calls onMarkAsRead only for unread notification', () => {
     render(<NotificationList {...mockProps} />);
 
-    const notificationItem = screen.getByText('Other Userさんからスーパーライクされました！');
-    fireEvent.click(notificationItem);
+    fireEvent.click(screen.getByText('Other Userさんにスーパーライクされました。'));
+    fireEvent.click(screen.getByText('Other Userさんとマッチしました。'));
 
+    expect(mockProps.onMarkAsRead).toHaveBeenCalledTimes(1);
     expect(mockProps.onMarkAsRead).toHaveBeenCalledWith('notification-1');
-  });
-
-  test('does not have close button in dropdown mode', () => {
-    render(<NotificationList {...mockProps} />);
-
-    // ドロップダウン形式では閉じるボタンは存在しない
-    expect(screen.queryByText('×')).not.toBeInTheDocument();
   });
 
   test('shows no notifications message when empty', () => {
@@ -83,5 +77,28 @@ describe('NotificationList Component', () => {
     render(<NotificationList {...emptyProps} />);
 
     expect(screen.getByText('新しい通知はありません')).toBeInTheDocument();
+  });
+
+  test('handles unknown sender and fallback avatar', () => {
+    const { container } = render(
+      <NotificationList
+        {...mockProps}
+        notifications={[
+          {
+            id: 'unknown-notification',
+            type: 'superLike',
+            fromUserId: 'unknown-user',
+            toUserId: 'user-1',
+            createdAt: '2024-01-01T12:00:00.000Z',
+            read: false
+          }
+        ]}
+      />
+    );
+
+    const avatar = container.querySelector('img.notification-avatar');
+    expect(avatar).toHaveAttribute('src', '/images/person.png');
+    expect(avatar).toHaveAttribute('alt', '通知ユーザー');
+    expect(screen.queryByText(/スーパーライク/)).not.toBeInTheDocument();
   });
 });

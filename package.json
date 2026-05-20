@@ -32,7 +32,7 @@
     "start": "concurrently \"npm run server\" \"react-scripts start\"",
     "server": "node server/index.js",
     "build": "react-scripts build",
-    "test": "react-scripts test --watchAll=false --passWithNoTests",
+    "test": "react-scripts test --watchAll=false --passWithNoTests --coverage",
     "eject": "react-scripts eject"
   },
   "proxy": "http://localhost:5000",
@@ -41,6 +41,29 @@
       "<rootDir>/tests/**/*.{js,jsx,ts,tsx}",
       "<rootDir>/src/**/*.{test,spec}.{js,jsx,ts,tsx}"
     ],
+    "collectCoverageFrom": [
+      "src/components/AgeVerification.js",
+      "src/components/EntrancePage.js",
+      "src/components/Footer.js",
+      "src/components/LoginPage.js",
+      "src/components/MatchList.js",
+      "src/components/NotificationList.js",
+      "src/components/SettingsPanel.js",
+      "src/components/TalkList.js",
+      "src/components/UserList.js",
+      "src/hooks/useLocalStorage.js",
+      "src/services/authService.js",
+      "src/utils/matchUtils.js",
+      "src/utils/userImage.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    },
     "transformIgnorePatterns": [
       "node_modules/(?!(@testing-library|react-scripts)/)"
     ]
