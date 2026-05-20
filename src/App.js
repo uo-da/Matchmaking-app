@@ -3,6 +3,7 @@ import AgeVerification from './components/AgeVerification';
 import EntrancePage from './components/EntrancePage';
 import LoginPage from './components/LoginPage';
 import ProfileEditor from './components/ProfileEditor';
+import ProfileView from './components/ProfileView';
 import SettingsPanel from './components/SettingsPanel';
 import TinderDeck from './components/TinderDeck';
 import MatchList from './components/MatchList';
@@ -593,10 +594,6 @@ function App() {
       const updated = await storageService.saveUserProfile({ ...currentUser, ...profile });
       setAllUsers((prev) => upsertUser(prev, updated));
       setCurrentUser(updated);
-      // プロフィールが完全になったらusersタブに戻る
-      if (isProfileComplete(updated)) {
-        setSelectedTab('users');
-      }
     } catch (error) {
       console.error('Failed to save profile:', error);
       const message = error instanceof Error ? error.message : '不明なエラー';
@@ -885,7 +882,9 @@ function App() {
         </header>
       )}
       <main className={`app-main ${isChatDetail ? 'app-main--chat-detail' : ''}`}>
-        {selectedTab === 'profile' && <ProfileEditor user={currentUser} onSave={handleProfileSave} />}
+        {selectedTab === 'profile' && (
+          <ProfileView user={currentUser} onSave={handleProfileSave} />
+        )}
         {selectedTab === 'settings' && (
           <SettingsPanel
             filter={filter}
