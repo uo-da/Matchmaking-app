@@ -9,7 +9,6 @@ describe('matchUtils', () => {
       hobbies: 'music',
       age: 28,
       gender: '男性',
-      scoutNg: false,
       stackTags: ['React', 'Node.js'],
       experienceYears: 3,
       matches: ['user-2']
@@ -21,7 +20,6 @@ describe('matchUtils', () => {
       hobbies: 'movie',
       age: 32,
       gender: '女性',
-      scoutNg: false,
       stackTags: ['Python'],
       experienceYears: 5,
       matches: ['user-1']
@@ -33,7 +31,6 @@ describe('matchUtils', () => {
       hobbies: '',
       age: 24,
       gender: '女性',
-      scoutNg: true,
       stackTags: ['React'],
       experienceYears: 1,
       matches: []
@@ -44,7 +41,6 @@ describe('matchUtils', () => {
       bio: 'No gender user',
       hobbies: '',
       age: 45,
-      scoutNg: false,
       stackTags: [],
       experienceYears: 10,
       matches: null
