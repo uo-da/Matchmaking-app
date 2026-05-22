@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import AgeVerification from './components/AgeVerification';
 import EntrancePage from './components/EntrancePage';
 import LoginPage from './components/LoginPage';
@@ -378,6 +378,27 @@ function App() {
   }, [currentUser]);
   const matchedIds = useMemo(() => (Array.isArray(currentUser?.matches) ? currentUser.matches : []), [currentUser?.matches]);
 
+  const refreshTalkMessages = useCallback(async () => {
+    if (!currentUser?.id || matchedIds.length === 0) {
+      setMessagesByMatchIdCache({});
+      return;
+    }
+
+    const userId = currentUser.id;
+    const entries = await Promise.all(
+      matchedIds.map(async (matchId) => {
+        const messages = await chatService.getMessages(userId, matchId);
+        return [matchId, Array.isArray(messages) ? messages : []];
+      })
+    );
+
+    const next = {};
+    entries.forEach(([matchId, messages]) => {
+      next[matchId] = messages;
+    });
+    setMessagesByMatchIdCache(next);
+  }, [currentUser?.id, matchedIds]);
+
   useEffect(() => {
     if (!currentUser?.id) {
       setMessagesByMatchIdCache({});
@@ -389,36 +410,10 @@ function App() {
       return;
     }
 
-    let isCancelled = false;
-    const userId = currentUser.id;
-
-    const preloadTalkMessages = async () => {
-      const entries = await Promise.all(
-        matchedIds.map(async (matchId) => {
-          const messages = await chatService.getMessages(userId, matchId);
-          return [matchId, Array.isArray(messages) ? messages : []];
-        })
-      );
-
-      if (isCancelled) {
-        return;
-      }
-
-      const next = {};
-      entries.forEach(([matchId, messages]) => {
-        next[matchId] = messages;
-      });
-      setMessagesByMatchIdCache(next);
-    };
-
-    preloadTalkMessages().catch((error) => {
+    refreshTalkMessages().catch((error) => {
       console.error('Failed to preload talk messages:', error);
     });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [currentUser?.id, matchedIds]);
+  }, [currentUser?.id, matchedIds, refreshTalkMessages]);
 
   useEffect(() => {
     if (!currentUser?.id || matchedIds.length === 0) {
@@ -431,12 +426,39 @@ function App() {
       if (!event.matchKey) {
         return;
       }
+      if (event.type && event.type.startsWith('editor:')) {
+        return;
+      }
 
       const targetMatchId = matchedIds.find(
         (matchId) => chatService.getMatchKey(userId, matchId) === event.matchKey
       );
       if (!targetMatchId) {
         return;
+      }
+
+      if (event.type === 'message') {
+        setMessagesByMatchIdCache((prev) => {
+          const existing = Array.isArray(prev[targetMatchId]) ? prev[targetMatchId] : [];
+          if (existing.some((item) => isSameMessage(item, event))) {
+            return prev;
+          }
+          return {
+            ...prev,
+            [targetMatchId]: [...existing, event]
+          };
+        });
+      } else if (event.type === 'read' && event.readBy) {
+        setMessagesByMatchIdCache((prev) => {
+          const existing = Array.isArray(prev[targetMatchId]) ? prev[targetMatchId] : [];
+          const next = existing.map((message) => (
+            message.receiverId === event.readBy ? { ...message, isRead: true } : message
+          ));
+          return {
+            ...prev,
+            [targetMatchId]: next
+          };
+        });
       }
 
       chatService.getMessages(userId, targetMatchId).then((messages) => {
@@ -457,6 +479,36 @@ function App() {
       channel.unsubscribe();
     };
   }, [currentUser?.id, matchedIds]);
+
+  useEffect(() => {
+    if (selectedTab !== 'chat' || selectedMatchId || !currentUser?.id || matchedIds.length === 0) {
+      return undefined;
+    }
+
+    let isCancelled = false;
+    const runRefresh = () => {
+      refreshTalkMessages().catch((error) => {
+        if (!isCancelled) {
+          console.error('Failed to refresh talk list:', error);
+        }
+      });
+    };
+
+    runRefresh();
+    const intervalId = window.setInterval(runRefresh, 4000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        runRefresh();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [selectedTab, selectedMatchId, currentUser?.id, matchedIds, refreshTalkMessages]);
 
   useEffect(() => {
     if (!currentUser?.id) {

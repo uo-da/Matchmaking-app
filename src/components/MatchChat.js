@@ -661,6 +661,8 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
             messages.map((message, index) => {
               const isOwn = message.senderId === currentUser.id;
               const timeLabel = formatMessageTime(message.timestamp);
+              const isRead = Boolean(message.isRead);
+              const shouldShowMeta = Boolean(timeLabel) || (isOwn && isRead);
               return (
                 <div
                   key={message.id || `${message.timestamp}-${index}`}
@@ -681,10 +683,10 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
                     <p className={`chat-room__bubble ${isOwn ? 'chat-room__bubble--own' : 'chat-room__bubble--other'}`}>
                       {message.text}
                     </p>
-                    {(timeLabel || (isOwn && message.isRead)) && (
+                    {shouldShowMeta && (
                       <div className={`chat-room__meta ${isOwn ? 'chat-room__meta--own' : 'chat-room__meta--other'}`}>
                         {timeLabel && <span className="chat-room__time">{timeLabel}</span>}
-                        {isOwn && message.isRead && <span className="chat-room__status">既読</span>}
+                        {isOwn && isRead && <span className="chat-room__status">既読</span>}
                       </div>
                     )}
                   </div>
