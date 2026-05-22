@@ -229,7 +229,9 @@ body {
 }
 
 .app-main--chat-detail {
-  height: 100%;
+  height: auto;
+  flex: 1;
+  min-height: 0;
   padding-top: 0;
 }
 
@@ -250,11 +252,25 @@ body {
 
 .app-shell--chat-detail {
   max-width: 100%;
-  padding: 0;
+  padding: 16px 16px 0;
   min-height: 100vh;
   height: 100vh;
   overflow: hidden;
-  background: #e8e8e8;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell--chat-detail .app-main {
+  flex: 1;
+  min-height: 0;
+  padding-top: 0;
+}
+
+@media (max-width: 768px) {
+  .app-shell--chat-detail {
+    padding: 16px 12px 0;
+  }
 }
 
 .app-shell--settings {
@@ -1027,20 +1043,25 @@ button.superlike {
   margin: 0 auto;
   padding: 0 4px 30px;
   display: grid;
-  gap: 40px;
+  gap: 20px;
 }
 
 .talk-section {
   display: grid;
-  gap: 18px;
+  gap: 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+  padding: 18px 18px 16px;
 }
 
 .talk-section__title {
   margin: 0;
-  font-size: var(--text-hero);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  color: #111111;
+  font-size: var(--text-title);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #0f172a;
 }
 
 .new-match-strip {
@@ -1062,11 +1083,19 @@ button.superlike {
   padding: 0;
   width: clamp(104px, 15vw, 174px);
   aspect-ratio: 1 / 1;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
-  background: #d4d4d4;
+  background: #e2e8f0;
+  border: 1px solid #d5deea;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
   flex: 0 0 auto;
   cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.new-match-thumb:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
 }
 
 .new-match-thumb__image {
@@ -1078,29 +1107,38 @@ button.superlike {
 
 .talk-list {
   display: grid;
-  gap: 20px;
+  gap: 12px;
 }
 
 .talk-item {
   width: 100%;
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr) auto;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
   gap: 16px;
   align-items: center;
-  border: none;
-  background: transparent;
+  border: 1px solid #dce3ee;
+  background: #f8fafc;
+  border-radius: 14px;
   text-align: left;
-  padding: 4px 0;
+  padding: 10px 12px;
   color: inherit;
   cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.talk-item:hover {
+  border-color: #c7d4e4;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
 
 .talk-item__avatar {
-  width: 76px;
-  height: 76px;
+  width: 62px;
+  height: 62px;
   border-radius: 50%;
   object-fit: cover;
   display: block;
+  border: 1px solid #d5deea;
 }
 
 .talk-item__body {
@@ -1111,18 +1149,18 @@ button.superlike {
 
 .talk-item__name {
   margin: 0;
-  font-size: clamp(1.2rem, 1.9vw, 1.75rem);
+  font-size: var(--font-size-xl);
   line-height: 1;
-  letter-spacing: -0.02em;
-  font-weight: 400;
-  color: #0a0a0a;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .talk-item__preview {
   margin: 0;
-  font-size: clamp(1rem, 1.5vw, 1.35rem);
-  line-height: 1.28;
-  color: #6a6a6a;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  color: #475569;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1138,29 +1176,30 @@ button.superlike {
 }
 
 .talk-item__time {
-  font-size: clamp(0.85rem, 1.2vw, 1.05rem);
-  color: #2a2a2a;
+  font-size: var(--font-size-xs);
+  color: #64748b;
   font-weight: 500;
 }
 
 .talk-item__badge {
-  min-width: 34px;
-  height: 34px;
+  min-width: 24px;
+  height: 24px;
   border-radius: 999px;
-  background: #ff272d;
+  background: #ef4444;
   color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 8px;
-  font-size: 1.45rem;
+  padding: 0 7px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
   line-height: 1;
 }
 
 .talk-empty {
   margin: 0;
-  color: #666666;
-  font-size: 1.05rem;
+  color: #64748b;
+  font-size: var(--font-size-sm);
 }
 
 .chat-room {
@@ -1169,9 +1208,12 @@ button.superlike {
   height: 100%;
   min-height: 0;
   display: block;
-  background: #e8e8e8;
+  background: #ffffff;
   position: relative;
   overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
 }
 
 .chat-room__chat-pane {
@@ -1186,34 +1228,41 @@ button.superlike {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 14px;
-  padding: 28px 34px 12px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
 .chat-room__back {
-  border: none;
-  background: transparent;
-  font-size: var(--text-display);
-  line-height: 0.7;
-  font-weight: 800;
-  color: #000000;
+  border: 1px solid #d8e1ec;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: var(--font-size-3xl);
+  line-height: 1;
+  font-weight: 700;
+  color: #334155;
   padding: 0;
-  width: 66px;
+  width: 44px;
+  height: 44px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chat-room__name {
   margin: 0;
-  font-size: var(--text-hero);
-  font-weight: 400;
-  color: #101010;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .chat-room__edit {
-  width: 52px;
-  height: 52px;
-  border: 1px solid #cfd5dc;
-  border-radius: 14px;
-  background: #f3f4f6;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #d8e1ec;
+  border-radius: 12px;
+  background: #ffffff;
   padding: 0;
   justify-self: end;
   cursor: pointer;
@@ -1224,7 +1273,7 @@ button.superlike {
 }
 
 .chat-room__edit:hover {
-  background: #eaedf2;
+  background: #f8fafc;
 }
 
 .chat-room__edit:focus-visible {
@@ -1233,9 +1282,9 @@ button.superlike {
 }
 
 .chat-room__edit--active {
-  background: #2563eb;
-  border-color: #1d4ed8;
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.28);
+  background: #ef4444;
+  border-color: #dc2626;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
 }
 
 .chat-room__edit--active .chat-room__edit-icon {
@@ -1243,8 +1292,8 @@ button.superlike {
 }
 
 .chat-room__edit-icon {
-  width: 34px;
-  height: 34px;
+  width: 26px;
+  height: 26px;
   display: block;
   object-fit: contain;
 }
@@ -1252,13 +1301,14 @@ button.superlike {
 .chat-room__messages {
   flex: 1;
   min-height: 0;
-  padding: 20px clamp(20px, 4vw, 74px) 24px;
+  padding: 18px clamp(16px, 4vw, 28px) 20px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #c9cccf #e8e8e8;
+  scrollbar-color: #cbd5e1 #f8fafc;
   display: grid;
   align-content: start;
-  gap: 22px;
+  gap: 12px;
+  background: #f8fafc;
 }
 
 .chat-room__messages::-webkit-scrollbar {
@@ -1266,17 +1316,17 @@ button.superlike {
 }
 
 .chat-room__messages::-webkit-scrollbar-track {
-  background: #e8e8e8;
+  background: #f8fafc;
 }
 
 .chat-room__messages::-webkit-scrollbar-thumb {
-  background: #c9cccf;
+  background: #cbd5e1;
   border-radius: 999px;
-  border: 2px solid #e8e8e8;
+  border: 2px solid #f8fafc;
 }
 
 .chat-room__messages::-webkit-scrollbar-thumb:hover {
-  background: #babec2;
+  background: #94a3b8;
 }
 
 .chat-room__row {
@@ -1290,39 +1340,40 @@ button.superlike {
 }
 
 .chat-room__avatar {
-  width: 80px;
-  height: 80px;
+  width: 48px;
+  height: 48px;
   border-radius: 999px;
   object-fit: cover;
   flex-shrink: 0;
+  border: 1px solid #d5deea;
 }
 
 .chat-room__bubble {
   margin: 0;
-  padding: 9px 14px;
-  border-radius: 12px;
-  border: 1px solid #b7b7b7;
-  font-size: var(--text-body);
-  line-height: 1.3;
-  max-width: min(66vw, 700px);
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid #d6dfea;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  max-width: min(76vw, 520px);
   white-space: pre-wrap;
 }
 
 .chat-room__bubble--other {
-  background: #e4e4e4;
-  color: #111111;
+  background: #ffffff;
+  color: #0f172a;
 }
 
 .chat-room__bubble--own {
-  background: linear-gradient(120deg, #7f6ef2 0%, #7059e6 100%);
-  border-color: #4f4296;
+  background: linear-gradient(120deg, #ef4444 0%, #f97316 100%);
+  border-color: #dc2626;
   color: #ffffff;
 }
 
 .chat-room__status {
   display: inline-block;
   font-size: var(--text-caption);
-  color: #7b7b7b;
+  color: #64748b;
 }
 
 .chat-room__meta {
@@ -1338,45 +1389,49 @@ button.superlike {
 
 .chat-room__time {
   font-size: var(--text-caption);
-  color: #7b7b7b;
+  color: #64748b;
 }
 
 .chat-room__empty {
   margin: auto;
-  font-size: var(--text-body);
-  color: #6a6a6a;
+  font-size: var(--font-size-sm);
+  color: #64748b;
 }
 
 .chat-room__composer {
   position: relative;
-  padding: 14px clamp(18px, 4vw, 78px);
+  padding: 12px 14px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
 }
 
 .chat-room__input {
   width: 100%;
-  height: 74px;
-  border: 2px solid #c4c4c4;
+  height: 52px;
+  border: 1px solid #d1dae6;
   border-radius: 999px;
-  background: #e8e8e8;
-  padding: 0 78px 0 28px;
-  font-size: var(--text-body-strong);
-  color: #101010;
+  background: #ffffff;
+  padding: 0 58px 0 16px;
+  font-size: var(--font-size-sm);
+  color: #0f172a;
 }
 
 .chat-room__input:focus {
   outline: none;
-  border-color: #8b8b8b;
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.16);
 }
 
 .chat-room__send {
   position: absolute;
-  right: clamp(28px, 5vw, 92px);
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   border: none;
-  background: transparent;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #ef4444 0%, #f97316 100%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1386,7 +1441,7 @@ button.superlike {
 }
 
 .chat-room__send:hover {
-  filter: brightness(0.94);
+  filter: brightness(0.96);
 }
 
 .chat-room__send:active {
@@ -1399,10 +1454,11 @@ button.superlike {
 }
 
 .chat-room__send-icon {
-  width: 26px;
-  height: 26px;
+  width: 16px;
+  height: 16px;
   display: block;
-  fill: #5f6368;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 .chat-editor {
@@ -1628,50 +1684,55 @@ button.superlike {
     min-width: 0;
     height: 100dvh;
     min-height: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
   }
 
   .chat-room__header {
-    padding: 16px 14px 8px;
+    padding: 10px 12px;
     gap: 8px;
   }
 
   .chat-room__back {
-    width: 42px;
-    font-size: var(--font-size-3xl);
+    width: 38px;
+    height: 38px;
+    font-size: 1.5rem;
   }
 
   .chat-room__name {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-lg);
   }
 
   .chat-room__edit,
   .chat-room__edit-icon {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
   }
 
   .chat-room__edit {
-    border-radius: 10px;
+    border-radius: 11px;
   }
 
   .chat-room__edit-icon {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
   }
 
   .chat-room__messages {
-    gap: 14px;
-    padding: 8px 12px 14px;
+    gap: 10px;
+    padding: 10px 12px 12px;
   }
 
   .chat-room__avatar {
-    width: 52px;
-    height: 52px;
+    width: 40px;
+    height: 40px;
   }
 
   .chat-room__bubble {
     max-width: 78vw;
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xs);
     padding: 8px 10px;
   }
 
@@ -1685,20 +1746,20 @@ button.superlike {
   }
 
   .chat-room__input {
-    height: 56px;
-    font-size: var(--text-body);
-    padding: 0 60px 0 18px;
+    height: 48px;
+    font-size: var(--font-size-sm);
+    padding: 0 52px 0 14px;
   }
 
   .chat-room__send {
     right: 18px;
-    width: 36px;
-    height: 36px;
+    width: 30px;
+    height: 30px;
   }
 
   .chat-room__send-icon {
-    width: 22px;
-    height: 22px;
+    width: 14px;
+    height: 14px;
   }
 
   .chat-editor {
@@ -2903,26 +2964,33 @@ button.small-button.active-tag {
   .talk-screen {
     width: 100%;
     min-width: 0;
-    gap: 32px;
+    gap: 16px;
     padding-bottom: 24px;
   }
 
+  .talk-section {
+    border-radius: 16px;
+    padding: 14px 12px;
+    gap: 12px;
+  }
+
   .new-match-strip {
-    gap: 14px;
+    gap: 10px;
   }
 
   .new-match-thumb {
-    width: min(126px, 30vw);
+    width: min(104px, 28vw);
     border-radius: 10px;
   }
 
   .talk-list {
-    gap: 16px;
+    gap: 10px;
   }
 
   .talk-item {
     grid-template-columns: 58px minmax(0, 1fr) auto;
     gap: 12px;
+    padding: 9px 10px;
   }
 
   .talk-item__avatar {
@@ -2931,11 +2999,11 @@ button.small-button.active-tag {
   }
 
   .talk-item__name {
-    font-size: 1.35rem;
+    font-size: var(--font-size-lg);
   }
 
   .talk-item__preview {
-    font-size: 1.05rem;
+    font-size: var(--font-size-xs);
   }
 
   .talk-item__meta {
@@ -2944,13 +3012,13 @@ button.small-button.active-tag {
   }
 
   .talk-item__time {
-    font-size: 0.85rem;
+    font-size: var(--font-size-2xs);
   }
 
   .talk-item__badge {
-    min-width: 30px;
-    height: 30px;
-    font-size: 1.2rem;
+    min-width: 22px;
+    height: 22px;
+    font-size: var(--font-size-2xs);
   }
 
   .likes-grid {

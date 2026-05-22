@@ -937,37 +937,35 @@ function App() {
         isChatDetail ? 'app-shell--chat-detail' : ''
       ].filter(Boolean).join(' ')}
     >
-      {!isChatDetail && (
-        <header className="app-header">
-          <div className="header-brand">
-            <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
-          </div>
-          <div className="header-actions">
-            {selectedTab === 'users' && (
-              <button type="button" className="icon-button icon-button--search" aria-label="検索">
-                <img src="/images/search.png" alt="" className="icon-button__image" />
-              </button>
-            )}
-            <button type="button" className="icon-button icon-button--bell" aria-label="通知" onClick={handleNotificationClick} ref={notificationButtonRef}>
-              <img src="/images/bell.png" alt="" className="icon-button__image" />
-              {notifications.filter(n => !n.read).length > 0 && (
-                <span className="notification-badge">
-                  {notifications.filter(n => !n.read).length}
-                </span>
-              )}
+      <header className="app-header">
+        <div className="header-brand">
+          <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
+        </div>
+        <div className="header-actions">
+          {selectedTab === 'users' && (
+            <button type="button" className="icon-button icon-button--search" aria-label="検索">
+              <img src="/images/search.png" alt="" className="icon-button__image" />
             </button>
-            {showNotificationList && (
-              <NotificationList
-                notifications={notifications}
-                users={allUsers}
-                onClose={handleNotificationClose}
-                onMarkAsRead={handleMarkNotificationAsRead}
-                onSelectNotification={handleSelectNotification}
-              />
+          )}
+          <button type="button" className="icon-button icon-button--bell" aria-label="通知" onClick={handleNotificationClick} ref={notificationButtonRef}>
+            <img src="/images/bell.png" alt="" className="icon-button__image" />
+            {notifications.filter(n => !n.read).length > 0 && (
+              <span className="notification-badge">
+                {notifications.filter(n => !n.read).length}
+              </span>
             )}
-          </div>
-        </header>
-      )}
+          </button>
+          {showNotificationList && (
+            <NotificationList
+              notifications={notifications}
+              users={allUsers}
+              onClose={handleNotificationClose}
+              onMarkAsRead={handleMarkNotificationAsRead}
+              onSelectNotification={handleSelectNotification}
+            />
+          )}
+        </div>
+      </header>
       <main className={`app-main ${isChatDetail ? 'app-main--chat-detail' : ''}`}>
         {selectedTab === 'profile' && (
           <ProfileView user={currentUser} onSave={handleProfileSave} />
