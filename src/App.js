@@ -865,10 +865,30 @@ function App() {
   }, [showNotificationList]);
 
   const handleMarkNotificationAsRead = (notificationId) => {
+    setNotifications((prev) => prev.map((notification) => (
+      notification.id === notificationId ? { ...notification, read: true } : notification
+    )));
     storageService.markNotificationAsRead(notificationId).catch((error) => {
       console.error('Failed to mark notification as read:', error);
     });
     setRefreshToggle((value) => !value);
+  };
+
+  const handleSelectNotification = (notification) => {
+    if (!notification) {
+      return;
+    }
+
+    const type = notification.type;
+    const fromUserId = notification.fromUserId;
+    if (type === 'match' && fromUserId) {
+      setShowNotificationList(false);
+      setSelectedTab('chat');
+      setSelectedMatchId(fromUserId);
+      return;
+    }
+
+    // like / superLike のプロフィール詳細遷移先は未実装のため、現時点では既読化のみ。
   };
 
   const isChatDetail = selectedTab === 'chat' && Boolean(selectedMatchId);
@@ -943,6 +963,7 @@ function App() {
                 users={allUsers}
                 onClose={handleNotificationClose}
                 onMarkAsRead={handleMarkNotificationAsRead}
+                onSelectNotification={handleSelectNotification}
               />
             )}
           </div>
