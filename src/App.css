@@ -485,6 +485,16 @@ body {
   color: #3730a3;
 }
 
+.deck-action-btn--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.deck-action-btn--disabled:hover {
+  transform: none;
+}
+
 .deck-action-btn--like {
   background: #fef2f2;
   color: #dc2626;
@@ -880,6 +890,7 @@ button.superlike {
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   transition: transform 140ms ease, box-shadow 140ms ease;
+  position: relative;
 }
 
 .likes-thumb:hover {
@@ -899,11 +910,34 @@ button.superlike {
   box-shadow: none;
 }
 
+.likes-thumb--superlike {
+  border: 3px solid #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3);
+}
+
 .likes-thumb__image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.likes-thumb__superlike-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  border: 2px solid white;
 }
 
 .likes-empty {

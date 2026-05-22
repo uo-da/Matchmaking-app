@@ -52,6 +52,13 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
     source: null
   });
 
+  // スーパーライクの残り回数を計算（1日1回）
+  const canSuperLike = useMemo(() => {
+    if (!currentUser) return false;
+    const today = new Date().toDateString();
+    return currentUser.lastSuperLikeDate !== today;
+  }, [currentUser]);
+
   const filteredUsers = useMemo(
     () => users.filter((user) => !dismissedUserIds.has(user.id)),
     [users, dismissedUserIds]
@@ -392,7 +399,13 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
             <button type="button" className="deck-action-btn deck-action-btn--nope" title="NOPE" onClick={() => executeSwipe('nope')} disabled={isExiting}>
               ✕
             </button>
-            <button type="button" className="deck-action-btn deck-action-btn--superlike" title="スーパーライク" onClick={() => executeSwipe('superlike')} disabled={isExiting}>
+            <button 
+              type="button" 
+              className={`deck-action-btn deck-action-btn--superlike ${!canSuperLike ? 'deck-action-btn--disabled' : ''}`} 
+              title={canSuperLike ? 'スーパーライク（1日1回）' : 'スーパーライクは明日使用可能'}
+              onClick={() => executeSwipe('superlike')} 
+              disabled={isExiting || !canSuperLike}
+            >
               ★
             </button>
             <button type="button" className="deck-action-btn deck-action-btn--like" title="LIKE" onClick={() => executeSwipe('like')} disabled={isExiting}>
