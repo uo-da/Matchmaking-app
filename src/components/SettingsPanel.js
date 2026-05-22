@@ -110,11 +110,12 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
 
   return (
     <section className="settings-screen" aria-label="設定画面">
-      <h2 className="settings-screen__title">設定</h2>
+      <div className="settings-screen__card">
+        <h2 className="settings-screen__title">設定</h2>
 
-      <h3 className="settings-screen__section-title">マッチ絞り込み</h3>
+        <h3 className="settings-screen__section-title">マッチ絞り込み</h3>
 
-      <div className="settings-block">
+        <div className="settings-block">
         <div className="settings-row">
           <span className="settings-row__label">スカウトNG設定</span>
           <button
@@ -207,9 +208,9 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
             />
           </div>
         </div>
-      </div>
+        </div>
 
-      <div className="settings-account-actions">
+        <div className="settings-account-actions">
         <button
           type="button"
           className="settings-account-button"
@@ -232,6 +233,7 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
         >
           アカウント削除
         </button>
+        </div>
       </div>
     </section>
   );
