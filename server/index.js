@@ -721,7 +721,7 @@ app.use((req, res, next) => {
   }
   return next();
 });
-app.use(express.json());
+app.use(express.json({ limit: '200kb' }));
 app.use(cors({ origin: true, credentials: true }));
 app.use(session({
   secret: SESSION_SECRET,
