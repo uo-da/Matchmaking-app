@@ -612,6 +612,17 @@ function App() {
       return;
     }
     const userId = currentUser.id;
+    
+    // スーパーライクの制限チェック（1日1回）
+    if (isSuperLike) {
+      const today = new Date().toDateString();
+      const lastSuperLikeDate = currentUser.lastSuperLikeDate;
+      if (lastSuperLikeDate === today) {
+        window.alert('スーパーライクは1日1回までです。明日またお試しください。');
+        return;
+      }
+    }
+    
     const targetUser = allUsers.find((user) => user.id === targetId) || null;
     const targetLikedCurrent = targetUser
       && (
@@ -633,13 +644,15 @@ function App() {
       const matches = targetLikedCurrent
         ? addUnique(normalizeArray(prev.matches), targetId)
         : normalizeArray(prev.matches);
+      const lastSuperLikeDate = isSuperLike ? new Date().toDateString() : prev.lastSuperLikeDate;
 
       return {
         ...prev,
         likedUserIds,
         superLikedUserIds,
         nopedUserIds,
-        matches
+        matches,
+        lastSuperLikeDate
       };
     });
 
@@ -655,12 +668,14 @@ function App() {
         const matches = targetLikedCurrent
           ? addUnique(normalizeArray(user.matches), targetId)
           : normalizeArray(user.matches);
+        const lastSuperLikeDate = isSuperLike ? new Date().toDateString() : user.lastSuperLikeDate;
         return {
           ...user,
           likedUserIds,
           superLikedUserIds,
           nopedUserIds,
-          matches
+          matches,
+          lastSuperLikeDate
         };
       }
       if (targetLikedCurrent && user.id === targetId) {

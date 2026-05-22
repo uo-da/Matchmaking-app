@@ -14,6 +14,14 @@ function MatchList({ currentUser, users, matchedUserIds, onSelectMatch }) {
     });
   }, [users, currentUser.id]);
 
+  const isSuperLikedByUser = (user) => {
+    return user.superLikedUserIds.includes(currentUser.id);
+  };
+
+  const isSuperLikeFromUser = (user) => {
+    return currentUser.superLikedUserIds.includes(user.id);
+  };
+
   const likedByCurrentUser = useMemo(() => {
     const likedIds = new Set([...(currentUser.likedUserIds || []), ...(currentUser.superLikedUserIds || [])]);
     return users.filter((user) => {
@@ -39,7 +47,7 @@ function MatchList({ currentUser, users, matchedUserIds, onSelectMatch }) {
               <button
                 key={`liked-by-${user.id}`}
                 type="button"
-                className={`likes-thumb ${matchedUserIds.has(user.id) ? '' : 'likes-thumb--disabled'}`}
+                className={`likes-thumb ${matchedUserIds.has(user.id) ? '' : 'likes-thumb--disabled'} ${isSuperLikeFromUser(user) ? 'likes-thumb--superlike' : ''}`}
                 title={matchedUserIds.has(user.id) ? user.displayName : `${user.displayName}（未マッチ）`}
                 disabled={!matchedUserIds.has(user.id)}
                 onClick={() => onSelectMatch(user.id)}
@@ -53,6 +61,9 @@ function MatchList({ currentUser, users, matchedUserIds, onSelectMatch }) {
                     loadNextImageCandidate(event, getUserImageCandidates(user, 260));
                   }}
                 />
+                {isSuperLikedByUser(user) && (
+                  <div className="likes-thumb__superlike-badge">★</div>
+                )}
               </button>
             ))
           )}

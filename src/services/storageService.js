@@ -128,7 +128,7 @@ const sampleUsers = [
     stackTags: ['Figma', 'React', 'CSS'],
     hobbies: 'カフェ, イラスト',
     likedUserIds: [],
-    superLikedUserIds: ['user-1'],
+    superLikedUserIds: [],
     nopedUserIds: [],
     matches: []
   },
@@ -568,6 +568,7 @@ const storageService = {
         nopedUserIds: [],
         matches: [],
         avatar: '',
+        lastSuperLikeDate: null,
         ...profile
       };
       const exists = users.some((user) => user.id === normalizedProfile.id);
