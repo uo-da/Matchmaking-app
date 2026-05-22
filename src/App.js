@@ -556,7 +556,7 @@ function App() {
   }
 
   if (!currentUser.ageVerified) {
-    return <AgeVerification onConfirm={handleAgeConfirm} />;
+    return <AgeVerification onConfirm={handleAgeConfirm} onBack={() => setCurrentUser(null)} />;
   }
 
   if (isInitialRegistration) {

@@ -13,7 +13,8 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
     stackTags: (user.stackTags || []).join(', '),
     experienceYears: user.experienceYears || 0,
     hobbies: user.hobbies || '',
-    photoUrls: user.photoUrls || []
+    photoUrls: user.photoUrls || [],
+    gender: user.gender || ''
   });
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
@@ -93,7 +94,8 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
       stackTags: (profile.stackTags || '').split(',').map((tag) => tag.trim()).filter(Boolean),
       experienceYears: Number(profile.experienceYears) || 0,
       hobbies: profile.hobbies.trim(),
-      photoUrls: profile.photoUrls
+      photoUrls: profile.photoUrls,
+      gender: profile.gender
     });
   };
 
@@ -157,6 +159,16 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
             ))}
           </select>
           {errors.experienceYears && <div className="profile-card__error">{errors.experienceYears}</div>}
+        </div>
+
+        <div className="profile-card__field">
+          <label htmlFor="gender">性別</label>
+          <select id="gender" name="gender" value={profile.gender} onChange={handleChange}>
+            <option value="">選択してください</option>
+            <option value="男性">男性</option>
+            <option value="女性">女性</option>
+            <option value="その他">その他</option>
+          </select>
         </div>
 
         <div className="profile-card__field">
