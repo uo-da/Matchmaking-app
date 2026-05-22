@@ -13,6 +13,8 @@ const WebSocket = require('ws');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const DB_FILE = path.join(__dirname, 'data', 'database.sqlite');
+const DEFAULT_JSON_LIMIT = '1mb';
+const EDITOR_JSON_LIMIT = '2mb';
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || 'your-github-client-id';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || 'your-github-client-secret';
@@ -721,7 +723,8 @@ app.use((req, res, next) => {
   }
   return next();
 });
-app.use(express.json({ limit: '200kb' }));
+app.use('/api/chats', express.json({ limit: EDITOR_JSON_LIMIT }));
+app.use(express.json({ limit: DEFAULT_JSON_LIMIT }));
 app.use(cors({ origin: true, credentials: true }));
 app.use(session({
   secret: SESSION_SECRET,
@@ -1077,6 +1080,26 @@ app.delete('/api/chats/:matchId/editor/files/:fileId', ensureAuthenticated, asyn
 
   broadcastMessage({ type: 'editor:file-deleted', matchKey: removed.matchKey, fileId: removed.id });
   res.json(removed);
+});
+
+app.use((error, req, res, next) => {
+  if (error?.type === 'entity.too.large') {
+    const requestLength = Number(req.headers['content-length'] || 0);
+    const limit = typeof error.limit === 'number' ? error.limit : null;
+    console.warn('[HTTP 413] request entity too large', {
+      method: req.method,
+      path: req.originalUrl,
+      contentLength: requestLength,
+      limit
+    });
+    return res.status(413).json({
+      error: 'Payload too large',
+      code: 'ENTITY_TOO_LARGE',
+      limit,
+      contentLength: requestLength
+    });
+  }
+  return next(error);
 });
 
 
