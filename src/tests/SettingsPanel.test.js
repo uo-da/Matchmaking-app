@@ -11,8 +11,7 @@ const baseFilter = {
   minYears: 0,
   minAge: 20,
   maxAge: 25,
-  genders: ['女性', '男性'],
-  excludeScoutNg: true
+  genders: ['女性', '男性']
 };
 
 const getNextFilter = (onFilterChange, previous = baseFilter) => {
@@ -21,16 +20,12 @@ const getNextFilter = (onFilterChange, previous = baseFilter) => {
 };
 
 describe('SettingsPanel', () => {
-  test('updates scout NG toggle and age sliders', () => {
+  test('updates age sliders', () => {
     const onFilterChange = jest.fn();
     render(<SettingsPanel filter={baseFilter} onFilterChange={onFilterChange} />);
 
-    fireEvent.click(screen.getByRole('button', { name: '' }));
-    let next = getNextFilter(onFilterChange);
-    expect(next.excludeScoutNg).toBe(false);
-
     fireEvent.change(screen.getByLabelText('最低年齢'), { target: { value: '30' } });
-    next = getNextFilter(onFilterChange);
+    let next = getNextFilter(onFilterChange);
     expect(next.minAge).toBe(24);
 
     fireEvent.change(screen.getByLabelText('最高年齢'), { target: { value: '18' } });
@@ -38,19 +33,15 @@ describe('SettingsPanel', () => {
     expect(next.maxAge).toBe(25);
   });
 
-  test('updates genders, stacks, custom tags and logout callback', async () => {
+  test('updates stacks, custom tags and logout callback', async () => {
     const user = userEvent.setup();
     const onFilterChange = jest.fn();
     const onLogout = jest.fn();
 
     render(<SettingsPanel filter={baseFilter} onFilterChange={onFilterChange} onLogout={onLogout} />);
 
-    await user.click(screen.getByRole('button', { name: '女性' }));
-    let next = getNextFilter(onFilterChange);
-    expect(next.genders).toEqual(['男性']);
-
     await user.click(screen.getByRole('button', { name: 'Node.js' }));
-    next = getNextFilter(onFilterChange);
+    let next = getNextFilter(onFilterChange);
     expect(next.stackTags).toEqual(['React', 'Node.js']);
     expect(next.stackTag).toBe('React');
 

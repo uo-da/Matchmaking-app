@@ -22,7 +22,6 @@ const techStacks = [
  * @param {{ filter: Object, onFilterChange: Function, onLogout?: Function, onDeleteAccount?: Function }} props
  */
 function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
-  const [isScoutNg, setIsScoutNg] = useState(filter.excludeScoutNg ?? true);
   const [minAge, setMinAge] = useState(filter.minAge ?? 18);
   const [maxAge, setMaxAge] = useState(filter.maxAge ?? 80);
   const [selectedStacks, setSelectedStacks] = useState(() => {
@@ -87,14 +86,6 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
     updateFilter({ maxAge: nextMax });
   };
 
-  const handleScoutNgToggle = () => {
-    setIsScoutNg((value) => {
-      const next = !value;
-      updateFilter({ excludeScoutNg: next });
-      return next;
-    });
-  };
-
   const maxAgeText = maxAge >= 80 ? '80以上' : String(maxAge);
 
   return (
@@ -105,18 +96,6 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
         <h3 className="settings-screen__section-title">マッチ絞り込み</h3>
 
         <div className="settings-block">
-        <div className="settings-row">
-          <span className="settings-row__label">スカウトNG設定</span>
-          <button
-            type="button"
-            className={`settings-switch ${isScoutNg ? 'settings-switch--on' : ''}`}
-            aria-pressed={isScoutNg}
-            onClick={handleScoutNgToggle}
-          >
-            <span className="settings-switch__thumb" />
-          </button>
-        </div>
-
         <div className="settings-row settings-row--age">
           <span className="settings-row__label">年齢</span>
           <div className="settings-age">

@@ -56,13 +56,12 @@ describe('matchUtils', () => {
     expect(result).toEqual([users[0]]);
   });
 
-  test('applies age, gender, scout and multiple stack filters', () => {
+  test('applies age, gender and multiple stack filters', () => {
     const result = filterUsersByCriteria(users, {
       stackTags: ['React', 'Python'],
       minAge: 25,
       maxAge: 35,
-      genders: ['女性'],
-      excludeScoutNg: true
+      genders: ['女性']
     });
     expect(result).toEqual([users[1]]);
   });
@@ -73,12 +72,12 @@ describe('matchUtils', () => {
   });
 
   test('does not apply max age upper bound when maxAge is 80', () => {
-    const result = filterUsersByCriteria(users, { maxAge: 80, excludeScoutNg: false });
+    const result = filterUsersByCriteria(users, { maxAge: 80 });
     expect(result).toContainEqual(users[3]);
   });
 
   test('ignores gender filter when target user has no gender', () => {
-    const result = filterUsersByCriteria(users, { genders: ['女性'], excludeScoutNg: false });
+    const result = filterUsersByCriteria(users, { genders: ['女性'] });
     expect(result).toContainEqual(users[3]);
   });
 

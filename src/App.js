@@ -108,8 +108,7 @@ function App() {
     minYears: 0,
     minAge: 18,
     maxAge: 80,
-    genders: ['女性', '男性'],
-    excludeScoutNg: true
+    genders: ['女性', '男性']
   });
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const [isViewStateHydrated, setIsViewStateHydrated] = useState(false);

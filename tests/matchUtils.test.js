@@ -14,13 +14,12 @@ describe('matchUtils', () => {
     ]);
   });
 
-  test('filterUsersByCriteria should apply age, gender, scout, and multiple stack filters', () => {
+  test('filterUsersByCriteria should apply age, gender, and multiple stack filters', () => {
     const result = filterUsersByCriteria(users, {
       stackTags: ['React', 'Python'],
       minAge: 25,
       maxAge: 35,
-      genders: ['女性'],
-      excludeScoutNg: true
+      genders: ['女性']
     });
     expect(result).toEqual([
       { id: 'user-2', displayName: 'B', age: 32, gender: '女性', scoutNg: false, stackTags: ['Python'], experienceYears: 5, matches: ['user-1'] }
