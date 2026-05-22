@@ -421,7 +421,7 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button type="button" aria-label="閉じる" onClick={() => setModalUser(null)} style={{ background: 'none', border: 'none', fontSize: 20 }}>✕</button>
             </div>
-            <ProfileView user={modalUser} readOnly onSave={() => {}} />
+            <ProfileView user={modalUser} readOnly title={`${modalUser.displayName}のプロフィール`} onSave={() => {}} />
           </div>
         </div>
       )}

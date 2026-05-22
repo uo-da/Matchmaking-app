@@ -7,7 +7,7 @@ import GitHubCalendar from './GitHubCalendar';
  * Read-only profile view with an edit (pen) button that toggles inline editor.
  * Pen icon is placed at same vertical level as the name on the right.
  */
-function ProfileView({ user, onSave, readOnly = false }) {
+function ProfileView({ user, onSave, readOnly = false, title = 'マイプロフィール' }) {
   const [isEditing, setIsEditing] = useState(false);
 
   if (!user) return null;
@@ -16,7 +16,7 @@ function ProfileView({ user, onSave, readOnly = false }) {
     <>
       {!isEditing ? (
         <div className="profile-card">
-          <h2 className="profile-card__title">マイプロフィール</h2>
+          <h2 className="profile-card__title">{title}</h2>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 {(user.photoUrls || []).slice(0, 3).map((p, i) => (
