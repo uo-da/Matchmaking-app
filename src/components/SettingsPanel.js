@@ -17,7 +17,6 @@ const techStacks = [
   'Vue',
   'Figma'
 ];
-const genderOptions = ['女性', '男性'];
 
 /**
  * @param {{ filter: Object, onFilterChange: Function, onLogout?: Function, onDeleteAccount?: Function }} props
@@ -26,9 +25,6 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
   const [isScoutNg, setIsScoutNg] = useState(filter.excludeScoutNg ?? true);
   const [minAge, setMinAge] = useState(filter.minAge ?? 18);
   const [maxAge, setMaxAge] = useState(filter.maxAge ?? 80);
-  const [selectedGenders, setSelectedGenders] = useState(
-    Array.isArray(filter.genders) && filter.genders.length > 0 ? filter.genders : genderOptions
-  );
   const [selectedStacks, setSelectedStacks] = useState(() => {
     if (Array.isArray(filter.stackTags) && filter.stackTags.length > 0) {
       return filter.stackTags;
@@ -77,13 +73,6 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
     setSelectedStacks(nextStacks);
     updateFilterStack(nextStacks);
     setCustomTags('');
-  };
-
-  const toggleGender = (gender) => {
-    const exists = selectedGenders.includes(gender);
-    const next = exists ? selectedGenders.filter((item) => item !== gender) : [...selectedGenders, gender];
-    setSelectedGenders(next);
-    updateFilter({ genders: next });
   };
 
   const handleMinAgeChange = (value) => {
@@ -154,30 +143,6 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
               <span className="settings-age__edge">80以上</span>
               <span className="settings-age__value">{minAge}〜{maxAgeText}</span>
             </div>
-          </div>
-        </div>
-
-        <div className="settings-row">
-          <span className="settings-row__label">表示する性別</span>
-          <div className="settings-gender-control">
-            <div className="settings-genders" role="group" aria-label="表示する性別">
-              {genderOptions.map((gender) => {
-                const isSelected = selectedGenders.includes(gender);
-                return (
-                  <button
-                    key={gender}
-                    type="button"
-                    className={`settings-gender-chip ${isSelected ? 'settings-gender-chip--active' : ''}`}
-                    aria-pressed={isSelected}
-                    onClick={() => toggleGender(gender)}
-                  >
-                    <span className="settings-gender-chip__check" aria-hidden="true">✓</span>
-                    {gender}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="settings-gender-help">選択した性別のユーザーだけをカードに表示します</p>
           </div>
         </div>
 
