@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { formatExperienceYears } from '../utils/experience';
 
 const getGithubAvatarUrl = (githubUsername) => `https://github.com/${githubUsername}.png?size=320`;
 
@@ -338,7 +339,7 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
                     <h3 className="deck-card__name">{nextUserCard.displayName}, {nextUserCard.age}</h3>
                   </div>
                   <p className="deck-card__detail">
-                    {nextUserCard.bio || `${nextUserCard.experienceYears}年の経験があります。`}
+                    {nextUserCard.bio || `${formatExperienceYears(nextUserCard.experienceYears)}の経験があります。`}
                   </p>
                   <div className="deck-card__tags">
                     {nextUserCard.stackTags.slice(0, 3).map((tag) => (
@@ -384,7 +385,7 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
                   <h3 className="deck-card__name">{currentUserCard.displayName}, {currentUserCard.age}</h3>
                 </div>
                 <p className="deck-card__detail">
-                  {currentUserCard.bio || `${currentUserCard.experienceYears}年の経験があります。`}
+                  {currentUserCard.bio || `${formatExperienceYears(currentUserCard.experienceYears)}の経験があります。`}
                 </p>
                 <div className="deck-card__tags">
                   {currentUserCard.stackTags.slice(0, 3).map((tag) => (

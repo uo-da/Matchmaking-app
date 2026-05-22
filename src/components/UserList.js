@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { formatExperienceYears } from '../utils/experience';
 
 /**
  * @param {{ currentUser: Object, users: Object[], filter: Object, onFilterChange: Function, onLike: Function, onSuperLike: Function }} props
@@ -55,7 +56,7 @@ function UserList({ currentUser, users, filter, onFilterChange, onLike, onSuperL
               <div>
                 <p>{user.bio}</p>
                 <p>
-                  経験: {user.experienceYears}年 / 趣味: {user.hobbies}
+                  経験: {formatExperienceYears(user.experienceYears)} / 趣味: {user.hobbies}
                 </p>
               </div>
               <div className="field">
@@ -86,7 +87,7 @@ function UserList({ currentUser, users, filter, onFilterChange, onLike, onSuperL
             <strong>技術スタック:</strong> {selectedUser.stackTags.join(', ')}
           </div>
           <div className="field">
-            <strong>経験年数:</strong> {selectedUser.experienceYears}年
+            <strong>経験年数:</strong> {formatExperienceYears(selectedUser.experienceYears)}
           </div>
           <div className="field">
             <strong>趣味:</strong> {selectedUser.hobbies}
