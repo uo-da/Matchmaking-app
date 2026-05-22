@@ -376,7 +376,20 @@ const storageService = {
 
   saveCurrentSession(user) {
     if (isLocalMode) {
-      window.localStorage.setItem('matchmaking_session', JSON.stringify(user));
+      try {
+        const minimal = {
+          id: user && user.id,
+          githubUsername: user && user.githubUsername,
+          displayName: user && user.displayName,
+          avatar: user && user.avatar,
+          ageVerified: user && user.ageVerified
+        };
+        window.localStorage.setItem('matchmaking_session', JSON.stringify(minimal));
+      } catch (e) {
+        // Do not block app if storage quota exceeded
+        // eslint-disable-next-line no-console
+        console.warn('Failed to save session to localStorage', e);
+      }
       return user;
     }
     return user;
