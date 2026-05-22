@@ -12,6 +12,7 @@ import chatService from '../services/chatService';
 import collabEditorService from '../services/collabEditorService';
 import storageService from '../services/storageService';
 import { getUserImageCandidates, loadNextImageCandidate } from '../utils/userImage';
+import NotFoundPage from './NotFoundPage';
 
 function formatMessageTime(timestamp) {
   if (!timestamp) {
@@ -105,6 +106,17 @@ function isOlderUpdate(currentFile, nextFile) {
   return nextFile.updatedAt < currentFile.updatedAt;
 }
 
+function isNotFoundError(error) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  return (
+    error.message.includes('404')
+    || error.message.includes('User not found')
+    || error.message.includes('Match user not found')
+  );
+}
+
 /**
  * @param {{ matchId: string, currentUser: Object, onSend: (matchId: string, text:string) => void, onBack?: () => void }} props
  */
@@ -112,6 +124,7 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
   const [text, setText] = useState('');
   const [messages, setMessages] = useState([]);
   const [matchUser, setMatchUser] = useState(null);
+  const [isChatUnavailable, setIsChatUnavailable] = useState(false);
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editorFiles, setEditorFiles] = useState([]);
@@ -129,8 +142,18 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
 
   useEffect(() => {
     const fetchMatchUser = async () => {
-      const user = await storageService.getUserById(matchId);
-      setMatchUser(user);
+      try {
+        const user = await storageService.getUserById(matchId);
+        setMatchUser(user);
+        setIsChatUnavailable(!user);
+      } catch (error) {
+        if (isNotFoundError(error)) {
+          setIsChatUnavailable(true);
+          setMatchUser(null);
+          return;
+        }
+        console.error('Failed to load chat user:', error);
+      }
     };
     if (matchId) {
       fetchMatchUser();
@@ -145,6 +168,9 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
         await chatService.markMessagesAsRead(currentUser.id, matchId);
       } catch (error) {
         console.error('Failed to load messages:', error);
+        if (isNotFoundError(error)) {
+          setIsChatUnavailable(true);
+        }
         setMessages([]);
       }
     };
@@ -178,6 +204,7 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
     setEditorFiles([]);
     setActiveEditorFileId(null);
     setEditorError('');
+    setIsChatUnavailable(false);
   }, [matchId]);
 
   useEffect(() => {
@@ -298,11 +325,18 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
     if (!trimmed) {
       return;
     }
-    const message = await onSend(matchId, trimmed);
-    setText('');
-    if (message) {
-      shouldScrollToBottomRef.current = true;
-      setMessages((prev) => (prev.some((item) => isSameMessage(item, message)) ? prev : [...prev, message]));
+    try {
+      const message = await onSend(matchId, trimmed);
+      setText('');
+      if (message) {
+        shouldScrollToBottomRef.current = true;
+        setMessages((prev) => (prev.some((item) => isSameMessage(item, message)) ? prev : [...prev, message]));
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      if (isNotFoundError(error)) {
+        setIsChatUnavailable(true);
+      }
     }
   };
 
@@ -627,6 +661,15 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
   ]), [languageExtension]);
 
   const avatarCandidates = useMemo(() => getUserImageCandidates(matchUser, 220), [matchUser]);
+
+  if (isChatUnavailable) {
+    return (
+      <NotFoundPage
+        actionLabel="戻る"
+        onAction={onBack}
+      />
+    );
+  }
 
   return (
     <section className={`chat-room ${isEditorOpen ? 'chat-room--editor-open' : ''}`} aria-label="チャット画面">
