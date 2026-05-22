@@ -97,6 +97,9 @@ function MatchList({ currentUser, users, matchedUserIds, onSelectMatch }) {
                     loadNextImageCandidate(event, getUserImageCandidates(user, 260));
                   }}
                 />
+                {isSuperLikeFromUser(user) && (
+                  <div className="likes-thumb__superlike-badge">★</div>
+                )}
               </button>
             ))
           )}

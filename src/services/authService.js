@@ -173,7 +173,7 @@ const authService = {
       avatar: `https://github.com/${randomUsername}.png`
     };
 
-    if (process.env.NODE_ENV === 'test') {
+    if (process.env.NODE_ENV === 'test' || (typeof window !== 'undefined' && window.location.hostname === 'localhost')) {
       localStorage.setItem('currentUser', JSON.stringify(demoUser));
       return demoUser;
     }
