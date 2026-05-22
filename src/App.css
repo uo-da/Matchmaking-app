@@ -1924,6 +1924,47 @@ button.superlike {
   }
 }
 
+.super-like-limit-modal {
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  text-align: center;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 40px 100px rgba(15, 23, 42, 0.3);
+  animation: matchModalAppear 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+.super-like-limit-modal__icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  animation: starSpin 800ms ease infinite;
+}
+
+@keyframes starSpin {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(180deg);
+  }
+}
+
+.super-like-limit-modal__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.super-like-limit-modal__message {
+  font-size: 1rem;
+  color: #64748b;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
 .match-modal__hearts {
   font-size: 4rem;
   margin-bottom: 8px;

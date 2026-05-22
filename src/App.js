@@ -117,6 +117,7 @@ function App() {
   const [allUsers, setAllUsers] = useState([]);
   const [messagesByMatchIdCache, setMessagesByMatchIdCache] = useState({});
   const [matchModal, setMatchModal] = useState(null);
+  const [superLikeLimitModal, setSuperLikeLimitModal] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotificationList, setShowNotificationList] = useState(false);
   const notificationButtonRef = useRef(null);
@@ -486,6 +487,7 @@ function App() {
     if (!user) {
       return;
     }
+
     setCurrentUser(user);
     setSelectedTab('users');
   };
@@ -608,32 +610,34 @@ function App() {
   const isInitialRegistration = Boolean(currentUser?.ageVerified && currentUser && !isProfileComplete(currentUser));
 
   const handleLike = (targetId, isSuperLike = false) => {
-    if (!currentUser?.id || !targetId) {
-      return;
-    }
-    const userId = currentUser.id;
-    
-    // スーパーライクの制限チェック（1日1回）
-    if (isSuperLike) {
-      const today = new Date().toDateString();
-      const lastSuperLikeDate = currentUser.lastSuperLikeDate;
-      if (lastSuperLikeDate === today) {
-        window.alert('スーパーライクは1日1回までです。明日またお試しください。');
-        return;
-      }
-    }
-    
-    const targetUser = allUsers.find((user) => user.id === targetId) || null;
-    const targetLikedCurrent = targetUser
-      && (
-        normalizeArray(targetUser.likedUserIds).includes(userId)
-        || normalizeArray(targetUser.superLikedUserIds).includes(userId)
-      );
+    let userId = null;
+    let targetLikedCurrent = false;
+    let targetUser = null;
 
     setCurrentUser((prev) => {
-      if (!prev || prev.id !== userId) {
+      if (!prev?.id || !targetId) {
         return prev;
       }
+      userId = prev.id;
+
+      // スーパーライクの制限チェック（1日3回）
+      if (isSuperLike) {
+        const today = new Date().toDateString();
+        const superLikeDates = normalizeArray(prev.superLikeDates || []);
+        const todaySuperLikes = superLikeDates.filter(date => date === today).length;
+        if (todaySuperLikes >= 3) {
+          setSuperLikeLimitModal(true);
+          return prev;
+        }
+      }
+
+      targetUser = allUsers.find((user) => user.id === targetId) || null;
+      targetLikedCurrent = targetUser
+        && (
+          normalizeArray(targetUser.likedUserIds).includes(userId)
+          || normalizeArray(targetUser.superLikedUserIds).includes(userId)
+        );
+
       const likedUserIds = isSuperLike
         ? normalizeArray(prev.likedUserIds)
         : addUnique(normalizeArray(prev.likedUserIds), targetId);
@@ -644,48 +648,65 @@ function App() {
       const matches = targetLikedCurrent
         ? addUnique(normalizeArray(prev.matches), targetId)
         : normalizeArray(prev.matches);
-      const lastSuperLikeDate = isSuperLike ? new Date().toDateString() : prev.lastSuperLikeDate;
+      const superLikeDates = isSuperLike
+        ? [...normalizeArray(prev.superLikeDates || []), new Date().toDateString()]
+        : normalizeArray(prev.superLikeDates || []);
 
-      return {
+      const updatedUser = {
         ...prev,
         likedUserIds,
         superLikedUserIds,
         nopedUserIds,
         matches,
-        lastSuperLikeDate
+        superLikeDates
       };
+
+      return updatedUser;
     });
 
-    setAllUsers((prev) => prev.map((user) => {
-      if (user.id === userId) {
-        const likedUserIds = isSuperLike
-          ? normalizeArray(user.likedUserIds)
-          : addUnique(normalizeArray(user.likedUserIds), targetId);
-        const superLikedUserIds = isSuperLike
-          ? addUnique(normalizeArray(user.superLikedUserIds), targetId)
-          : normalizeArray(user.superLikedUserIds);
-        const nopedUserIds = normalizeArray(user.nopedUserIds).filter((id) => id !== targetId);
-        const matches = targetLikedCurrent
-          ? addUnique(normalizeArray(user.matches), targetId)
-          : normalizeArray(user.matches);
-        const lastSuperLikeDate = isSuperLike ? new Date().toDateString() : user.lastSuperLikeDate;
-        return {
-          ...user,
-          likedUserIds,
-          superLikedUserIds,
-          nopedUserIds,
-          matches,
-          lastSuperLikeDate
-        };
-      }
-      if (targetLikedCurrent && user.id === targetId) {
-        return {
-          ...user,
-          matches: addUnique(normalizeArray(user.matches), userId)
-        };
-      }
-      return user;
-    }));
+    setAllUsers((prev) => {
+      if (!userId) return prev;
+
+      const targetUser = prev.find((user) => user.id === targetId) || null;
+      const targetLikedCurrent = targetUser
+        && (
+          normalizeArray(targetUser.likedUserIds).includes(userId)
+          || normalizeArray(targetUser.superLikedUserIds).includes(userId)
+        );
+
+      return prev.map((user) => {
+        if (user.id === userId) {
+          const likedUserIds = isSuperLike
+            ? normalizeArray(user.likedUserIds)
+            : addUnique(normalizeArray(user.likedUserIds), targetId);
+          const superLikedUserIds = isSuperLike
+            ? addUnique(normalizeArray(user.superLikedUserIds), targetId)
+            : normalizeArray(user.superLikedUserIds);
+          const nopedUserIds = normalizeArray(user.nopedUserIds).filter((id) => id !== targetId);
+          const matches = targetLikedCurrent
+            ? addUnique(normalizeArray(user.matches), targetId)
+            : normalizeArray(user.matches);
+          const superLikeDates = isSuperLike
+            ? [...normalizeArray(user.superLikeDates || []), new Date().toDateString()]
+            : normalizeArray(user.superLikeDates || []);
+          return {
+            ...user,
+            likedUserIds,
+            superLikedUserIds,
+            nopedUserIds,
+            matches,
+            superLikeDates
+          };
+        }
+        if (targetLikedCurrent && user.id === targetId) {
+          return {
+            ...user,
+            matches: addUnique(normalizeArray(user.matches), userId)
+          };
+        }
+        return user;
+      });
+    });
 
     if (isSuperLike) {
       storageService.addNotification('superLike', userId, targetId).catch((error) => {
@@ -914,6 +935,7 @@ function App() {
             users={filteredUsers}
             onLike={handleLike}
             onNope={handleNope}
+            onSuperLikeLimit={() => setSuperLikeLimitModal(true)}
           />
         )}
         {selectedTab === 'matches' && (
@@ -971,6 +993,18 @@ function App() {
             </button>
             <button type="button" className="secondary-button" onClick={() => setMatchModal(null)}>
               後で
+            </button>
+          </div>
+        </div>
+      )}
+      {superLikeLimitModal && (
+        <div className="modal-overlay" onClick={() => setSuperLikeLimitModal(false)}>
+          <div className="super-like-limit-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="super-like-limit-modal__icon">⭐</div>
+            <h2 className="super-like-limit-modal__title">スーパーライク制限</h2>
+            <p className="super-like-limit-modal__message">スーパーライクは1日3回までです。明日またお試しください。</p>
+            <button type="button" className="primary-button" onClick={() => setSuperLikeLimitModal(false)}>
+              OK
             </button>
           </div>
         </div>

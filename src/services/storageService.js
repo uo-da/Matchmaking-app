@@ -1,5 +1,5 @@
 const API_BASE = process.env.REACT_APP_API_BASE || '';
-const isLocalMode = process.env.NODE_ENV === 'test';
+const isLocalMode = process.env.NODE_ENV === 'test' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
 const CHAT_STORAGE_PREFIX = 'matchmaking_chat_';
 const EDITOR_STORAGE_PREFIX = 'matchmaking_editor_files_';
 const DEMO_USER_ID_PREFIX = 'demo-';
@@ -568,7 +568,7 @@ const storageService = {
         nopedUserIds: [],
         matches: [],
         avatar: '',
-        lastSuperLikeDate: null,
+        superLikeDates: [],
         ...profile
       };
       const exists = users.some((user) => user.id === normalizedProfile.id);

@@ -35,9 +35,9 @@ const getUserImageUrls = (user) => {
 };
 
 /**
- * @param {{ currentUser: Object, users: Object[], onLike: Function, onNope?: Function }} props
+ * @param {{ currentUser: Object, users: Object[], onLike: Function, onNope?: Function, onSuperLikeLimit?: Function }} props
  */
-function TinderDeck({ currentUser, users, onLike, onNope }) {
+function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
@@ -52,11 +52,13 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
     source: null
   });
 
-  // スーパーライクの残り回数を計算（1日1回）
+  // スーパーライクの残り回数を計算（1日3回）
   const canSuperLike = useMemo(() => {
     if (!currentUser) return false;
     const today = new Date().toDateString();
-    return currentUser.lastSuperLikeDate !== today;
+    const superLikeDates = currentUser.superLikeDates || [];
+    const todaySuperLikes = superLikeDates.filter(date => date === today).length;
+    return todaySuperLikes < 3;
   }, [currentUser]);
 
   const filteredUsers = useMemo(
@@ -399,12 +401,18 @@ function TinderDeck({ currentUser, users, onLike, onNope }) {
             <button type="button" className="deck-action-btn deck-action-btn--nope" title="NOPE" onClick={() => executeSwipe('nope')} disabled={isExiting}>
               ✕
             </button>
-            <button 
-              type="button" 
-              className={`deck-action-btn deck-action-btn--superlike ${!canSuperLike ? 'deck-action-btn--disabled' : ''}`} 
-              title={canSuperLike ? 'スーパーライク（1日1回）' : 'スーパーライクは明日使用可能'}
-              onClick={() => executeSwipe('superlike')} 
-              disabled={isExiting || !canSuperLike}
+            <button
+              type="button"
+              className={`deck-action-btn deck-action-btn--superlike ${!canSuperLike ? 'deck-action-btn--disabled' : ''}`}
+              title={canSuperLike ? 'スーパーライク（1日3回）' : 'スーパーライクは明日使用可能'}
+              onClick={() => {
+                if (!canSuperLike) {
+                  onSuperLikeLimit();
+                  return;
+                }
+                executeSwipe('superlike');
+              }}
+              disabled={isExiting}
             >
               ★
             </button>
