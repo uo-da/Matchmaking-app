@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 
 /**
- * @param {{ onConfirm: (age:number) => void }} props
+ * @param {{ onConfirm: (age:number) => void, onBack?: () => void }} props
  */
-function AgeVerification({ onConfirm }) {
+function AgeVerification({ onConfirm, onBack }) {
   const [age, setAge] = useState('');
   const [error, setError] = useState('');
 
@@ -41,6 +41,11 @@ function AgeVerification({ onConfirm }) {
             確認して次へ
           </button>
         </form>
+        {onBack && (
+          <button type="button" className="secondary-button" onClick={onBack} style={{ marginTop: 8, width: '100%' }}>
+            戻る
+          </button>
+        )}
       </div>
     </div>
   );

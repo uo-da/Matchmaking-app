@@ -397,21 +397,38 @@ const storageService = {
     return null;
   },
 
-  saveCurrentSession(user) {
-    if (isLocalMode) {
-      window.localStorage.setItem('matchmaking_session', JSON.stringify(user));
+ saveCurrentSession(user) {
+  if (isLocalMode) {
+    try {
+      const minimal = {
+        id: user?.id,
+        githubUsername: user?.githubUsername,
+        displayName: user?.displayName,
+        avatar: user?.avatar,
+        ageVerified: user?.ageVerified
+      };
+
+      window.localStorage.setItem('matchmaking_session', JSON.stringify(minimal));
+
       window.localStorage.setItem('currentUser', JSON.stringify(user));
+
       const users = this.getUsers();
       const dedupedUsers = users.filter((item) => (
-        item.id !== user.id
-        && (!user.githubUsername || item.githubUsername !== user.githubUsername)
+        item.id !== user.id &&
+        (!user.githubUsername || item.githubUsername !== user.githubUsername)
       ));
+
       const nextUsers = [...dedupedUsers, user];
       this.setUsers(nextUsers);
-      return user;
+
+    } catch (e) {
+      console.warn('Failed to save session to localStorage', e);
     }
+
     return user;
-  },
+  }
+  return user;
+},
 
   clearCurrentSession() {
     if (isLocalMode) {
