@@ -2,7 +2,7 @@ const CHAT_PREFIX = 'matchmaking_chat_';
 const CHAT_EVENT_KEY = 'matchmaking_chat_event';
 
 const API_BASE = process.env.REACT_APP_API_BASE || '';
-const isLocalMode = process.env.NODE_ENV !== 'production';
+const isLocalMode = process.env.NODE_ENV === 'test';
 
 const getFallbackApiBase = () => {
   if (API_BASE) {

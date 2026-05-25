@@ -27,11 +27,11 @@ const attemptFetchBase = async (base, path, options = {}) => {
   });
 };
 
-const fetchAuthResponse = async (path, options = {}) => {
+const fetchAuthResponse = async (path, options = {}, { retryOnHttpError = true } = {}) => {
   const fallbackBase = getFallbackApiBase();
   try {
     const response = await attemptFetchBase(API_BASE, path, options);
-    if (!response.ok && fallbackBase && fallbackBase !== API_BASE) {
+    if (retryOnHttpError && !response.ok && fallbackBase && fallbackBase !== API_BASE) {
       return await attemptFetchBase(fallbackBase, path, options);
     }
     return response;
@@ -44,6 +44,16 @@ const fetchAuthResponse = async (path, options = {}) => {
 };
 
 const authService = {
+  getAuthHost() {
+    return API_BASE || getFallbackApiBase() || '';
+  },
+
+  getLogoutRedirectUrl(nextUrl) {
+    const authHost = this.getAuthHost();
+    const target = nextUrl || (typeof window !== 'undefined' ? window.location.origin : '/');
+    return `${authHost}/auth/logout?next=${encodeURIComponent(target)}`;
+  },
+
   /**
    * GitHub OIDC認証でログインします。
    * @returns {Promise<User>}
@@ -62,7 +72,7 @@ const authService = {
       return user;
     }
     // GitHub認証ページにリダイレクト
-    const authHost = API_BASE || getFallbackApiBase() || '';
+    const authHost = this.getAuthHost();
     window.location.href = `${authHost}/auth/github`;
   },
 
@@ -76,7 +86,7 @@ const authService = {
       return saved ? JSON.parse(saved) : null;
     }
     try {
-      const response = await fetchAuthResponse('/auth/user');
+      const response = await fetchAuthResponse('/auth/user', {}, { retryOnHttpError: false });
       if (response.ok) {
         return await response.json();
       }
@@ -97,10 +107,28 @@ const authService = {
       return true;
     }
     try {
-      const response = await fetchAuthResponse('/auth/logout', {
-        method: 'POST'
-      });
-      return response.ok;
+      const fallbackBase = getFallbackApiBase();
+      const bases = Array.from(new Set([API_BASE, fallbackBase].filter((base) => typeof base === 'string')));
+      if (bases.length === 0) {
+        bases.push('');
+      }
+
+      let success = false;
+      let hadError = false;
+      await Promise.all(bases.map(async (base) => {
+        try {
+          const response = await attemptFetchBase(base, '/auth/logout', { method: 'POST' });
+          if (response.ok) {
+            success = true;
+          }
+        } catch {
+          hadError = true;
+        }
+      }));
+      if (!success && hadError) {
+        console.error('Failed to logout: all logout attempts failed');
+      }
+      return success;
     } catch (error) {
       console.error('Failed to logout:', error);
       return false;
@@ -145,18 +173,14 @@ const authService = {
       avatar: `https://github.com/${randomUsername}.png`
     };
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV === 'test' || (typeof window !== 'undefined' && window.location.hostname === 'localhost')) {
       localStorage.setItem('currentUser', JSON.stringify(demoUser));
       return demoUser;
     }
 
     try {
-      const response = await fetch('/api/users/guest', {
+      const response = await fetchAuthResponse('/api/users/guest', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({
           githubUsername: demoUser.githubUsername,
           displayName: demoUser.displayName,

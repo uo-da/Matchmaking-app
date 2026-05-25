@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './ProfileView.css';
 import ProfileEditor from './ProfileEditor';
 import GitHubCalendar from './GitHubCalendar';
+import { formatExperienceYears } from '../utils/experience';
 
 /**
  * Read-only profile view with an edit (pen) button that toggles inline editor.
@@ -41,7 +42,7 @@ function ProfileView({ user, onSave, readOnly = false, title = 'マイプロフ�
 
             <div style={{ marginTop: 8 }}>
               <div style={{ fontSize: 12, color: '#333' }}>経験年数</div>
-              <div style={{ marginTop: 6 }}>{user.experienceYears || 0}</div>
+              <div style={{ marginTop: 6 }}>{formatExperienceYears(user.experienceYears)}</div>
             </div>
 
             <div style={{ marginTop: 12 }}>

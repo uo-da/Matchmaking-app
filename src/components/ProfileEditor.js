@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
+import { EXPERIENCE_MAX_YEARS, normalizeExperienceYears } from '../utils/experience';
 
 const popularTags = ['Python', 'Java', 'Go', 'JavaScript', 'TypeScript', 'AWS', 'Docker', 'Kubernetes'];
-const yearOptions = Array.from({ length: 20 }, (_, index) => index + 1);
+const yearOptions = Array.from({ length: EXPERIENCE_MAX_YEARS }, (_, index) => index + 1);
 
 /**
  * @param {{ user: Object, onSave: (profile: Object) => void }} props
@@ -22,7 +23,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    const normalizedValue = name === 'experienceYears' ? Math.max(0, Number(value) || 0) : value;
+    const normalizedValue = name === 'experienceYears' ? normalizeExperienceYears(value) : value;
     setProfile((prev) => ({ ...prev, [name]: normalizedValue }));
   };
 
@@ -92,7 +93,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
       displayName: profile.displayName.trim() || user.displayName,
       bio: profile.bio.trim(),
       stackTags: (profile.stackTags || '').split(',').map((tag) => tag.trim()).filter(Boolean),
-      experienceYears: Number(profile.experienceYears) || 0,
+      experienceYears: normalizeExperienceYears(profile.experienceYears),
       hobbies: profile.hobbies.trim(),
       photoUrls: profile.photoUrls,
       gender: profile.gender
@@ -155,7 +156,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
           <select id="experienceYears" name="experienceYears" value={profile.experienceYears} onChange={handleChange}>
             <option value="0">選択してください</option>
             {yearOptions.map((year) => (
-              <option key={year} value={year}>{year}年</option>
+              <option key={year} value={year}>{year === EXPERIENCE_MAX_YEARS ? `${year}年以上` : `${year}年`}</option>
             ))}
           </select>
           {errors.experienceYears && <div className="profile-card__error">{errors.experienceYears}</div>}

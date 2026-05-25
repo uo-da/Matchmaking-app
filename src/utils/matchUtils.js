@@ -1,6 +1,6 @@
 /**
  * @param {Array} users
- * @param {{ query?: string, stackTag?: string, stackTags?: string[], minYears?: number, minAge?: number, maxAge?: number, genders?: string[], excludeScoutNg?: boolean }} filter
+ * @param {{ query?: string, stackTag?: string, stackTags?: string[], minYears?: number, minAge?: number, maxAge?: number, genders?: string[] }} filter
  */
 export function filterUsersByCriteria(users, filter) {
   return users.filter((user) => {
@@ -52,10 +52,6 @@ export function filterUsersByCriteria(users, filter) {
       if (!filter.genders.includes(user.gender)) {
         return false;
       }
-    }
-
-    if (filter.excludeScoutNg && user.scoutNg) {
-      return false;
     }
 
     return true;

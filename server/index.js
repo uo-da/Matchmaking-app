@@ -13,6 +13,8 @@ const WebSocket = require('ws');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const DB_FILE = path.join(__dirname, 'data', 'database.sqlite');
+const DEFAULT_JSON_LIMIT = '1mb';
+const EDITOR_JSON_LIMIT = '2mb';
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || 'your-github-client-id';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || 'your-github-client-secret';
@@ -22,6 +24,8 @@ const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || `${BACKEND_URL}/auth/github/callback`;
 const GITHUB_FAILURE_URL = process.env.GITHUB_FAILURE_URL || `${FRONTEND_URL}/login`;
 const GITHUB_SUCCESS_URL = process.env.GITHUB_SUCCESS_URL || FRONTEND_URL;
+const ENABLE_WASABI_FIXTURES = process.env.ENABLE_WASABI_FIXTURES === 'true';
+const LEGACY_DB_FILE = path.join(process.cwd(), 'data', 'database.sqlite');
 
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
@@ -58,6 +62,12 @@ const serializeUser = (row) => {
   if (!row) {
     return null;
   }
+  let photoUrls = [];
+  try {
+    photoUrls = JSON.parse(row.photoUrls || '[]');
+  } catch {
+    photoUrls = [];
+  }
   return {
     id: row.id,
     githubUsername: row.githubUsername,
@@ -72,6 +82,7 @@ const serializeUser = (row) => {
     superLikedUserIds: JSON.parse(row.superLikedUserIds || '[]'),
     nopedUserIds: JSON.parse(row.nopedUserIds || '[]'),
     matches: JSON.parse(row.matches || '[]'),
+    photoUrls: Array.isArray(photoUrls) ? photoUrls : [],
     avatar: row.avatar
   };
 };
@@ -257,8 +268,15 @@ const initDatabase = async () => {
     superLikedUserIds TEXT,
     nopedUserIds TEXT,
     matches TEXT,
+    photoUrls TEXT DEFAULT '[]',
     avatar TEXT
   )`);
+
+  const userColumns = await all('PRAGMA table_info(users)');
+  const userColumnNames = new Set(userColumns.map((column) => column.name));
+  if (!userColumnNames.has('photoUrls')) {
+    await run(`ALTER TABLE users ADD COLUMN photoUrls TEXT DEFAULT '[]'`);
+  }
 
   await run(`CREATE TABLE IF NOT EXISTS chat_messages (
     id TEXT PRIMARY KEY,
@@ -280,6 +298,15 @@ const initDatabase = async () => {
     updatedAt INTEGER
   )`);
 
+  await run(`CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    type TEXT,
+    fromUserId TEXT,
+    toUserId TEXT,
+    createdAt INTEGER,
+    read INTEGER DEFAULT 0
+  )`);
+
   const row = await get('SELECT COUNT(*) AS count FROM users');
   if (row.count === 0) {
     const initialUsers = [
@@ -297,6 +324,7 @@ const initDatabase = async () => {
         superLikedUserIds: JSON.stringify([]),
         nopedUserIds: JSON.stringify([]),
         matches: JSON.stringify(['user-2']),
+        photoUrls: JSON.stringify([]),
         avatar: 'https://github.com/octocat.png'
       },
       {
@@ -313,6 +341,7 @@ const initDatabase = async () => {
         superLikedUserIds: JSON.stringify([]),
         nopedUserIds: JSON.stringify([]),
         matches: JSON.stringify(['user-1']),
+        photoUrls: JSON.stringify([]),
         avatar: 'https://github.com/mona.png'
       },
       {
@@ -329,12 +358,13 @@ const initDatabase = async () => {
         superLikedUserIds: JSON.stringify([]),
         nopedUserIds: JSON.stringify([]),
         matches: JSON.stringify([]),
+        photoUrls: JSON.stringify([]),
         avatar: 'https://github.com/ramen.png'
       }
     ];
 
-    const insert = `INSERT INTO users (id, githubUsername, displayName, bio, age, ageVerified, experienceYears, stackTags, hobbies, likedUserIds, superLikedUserIds, nopedUserIds, matches, avatar)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const insert = `INSERT INTO users (id, githubUsername, displayName, bio, age, ageVerified, experienceYears, stackTags, hobbies, likedUserIds, superLikedUserIds, nopedUserIds, matches, photoUrls, avatar)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     for (const user of initialUsers) {
       await run(insert, [
@@ -351,12 +381,15 @@ const initDatabase = async () => {
         user.superLikedUserIds,
         user.nopedUserIds,
         user.matches,
+        user.photoUrls,
         user.avatar
       ]);
     }
   }
 
-  await ensureWasabiFixtures();
+  if (ENABLE_WASABI_FIXTURES) {
+    await ensureWasabiFixtures();
+  }
 };
 
 const getUserById = async (id) => {
@@ -370,7 +403,7 @@ const getUserByGithub = async (githubUsername) => {
 };
 
 const saveUser = async (user) => {
-  await run(`UPDATE users SET displayName = ?, bio = ?, age = ?, ageVerified = ?, experienceYears = ?, stackTags = ?, hobbies = ?, likedUserIds = ?, superLikedUserIds = ?, nopedUserIds = ?, matches = ?, avatar = ? WHERE id = ?`, [
+  await run(`UPDATE users SET displayName = ?, bio = ?, age = ?, ageVerified = ?, experienceYears = ?, stackTags = ?, hobbies = ?, likedUserIds = ?, superLikedUserIds = ?, nopedUserIds = ?, matches = ?, photoUrls = ?, avatar = ? WHERE id = ?`, [
     user.displayName,
     user.bio,
     user.age,
@@ -382,16 +415,92 @@ const saveUser = async (user) => {
     JSON.stringify(normalizeArray(user.superLikedUserIds)),
     JSON.stringify(normalizeArray(user.nopedUserIds)),
     JSON.stringify(normalizeArray(user.matches)),
+    JSON.stringify(normalizeArray(user.photoUrls)),
     user.avatar,
     user.id
   ]);
   return getUserById(user.id);
 };
 
+const removeUserIdFromList = (value, userId) => (
+  normalizeArray(value).filter((id) => id !== userId)
+);
+
+const deleteUserAccount = async (userId) => {
+  const targetUser = await getUserById(userId);
+  if (!targetUser) {
+    return false;
+  }
+
+  const users = await getAllUsers();
+  const otherUsers = users.filter((user) => user.id !== userId);
+  const nextUsers = otherUsers.map((user) => {
+    const likedUserIds = removeUserIdFromList(user.likedUserIds, userId);
+    const superLikedUserIds = removeUserIdFromList(user.superLikedUserIds, userId);
+    const nopedUserIds = removeUserIdFromList(user.nopedUserIds, userId);
+    const matches = removeUserIdFromList(user.matches, userId);
+    const hasChanged = (
+      likedUserIds.length !== normalizeArray(user.likedUserIds).length
+      || superLikedUserIds.length !== normalizeArray(user.superLikedUserIds).length
+      || nopedUserIds.length !== normalizeArray(user.nopedUserIds).length
+      || matches.length !== normalizeArray(user.matches).length
+    );
+
+    return {
+      ...user,
+      likedUserIds,
+      superLikedUserIds,
+      nopedUserIds,
+      matches,
+      hasChanged
+    };
+  });
+
+  const relatedMatchKeys = Array.from(new Set(
+    otherUsers.map((user) => getMatchKey(userId, user.id))
+  ));
+
+  await run('BEGIN TRANSACTION');
+  try {
+    for (const user of nextUsers) {
+      if (!user.hasChanged) {
+        continue;
+      }
+      await run(
+        'UPDATE users SET likedUserIds = ?, superLikedUserIds = ?, nopedUserIds = ?, matches = ? WHERE id = ?',
+        [
+          JSON.stringify(user.likedUserIds),
+          JSON.stringify(user.superLikedUserIds),
+          JSON.stringify(user.nopedUserIds),
+          JSON.stringify(user.matches),
+          user.id
+        ]
+      );
+    }
+
+    await run('DELETE FROM chat_messages WHERE senderId = ? OR receiverId = ?', [userId, userId]);
+    await run('DELETE FROM collab_files WHERE updatedBy = ?', [userId]);
+    await run('DELETE FROM notifications WHERE fromUserId = ? OR toUserId = ?', [userId, userId]);
+
+    if (relatedMatchKeys.length > 0) {
+      const placeholders = relatedMatchKeys.map(() => '?').join(', ');
+      await run(`DELETE FROM chat_messages WHERE matchKey IN (${placeholders})`, relatedMatchKeys);
+      await run(`DELETE FROM collab_files WHERE matchKey IN (${placeholders})`, relatedMatchKeys);
+    }
+
+    await run('DELETE FROM users WHERE id = ?', [userId]);
+    await run('COMMIT');
+    return true;
+  } catch (error) {
+    await run('ROLLBACK');
+    throw error;
+  }
+};
+
 const createUser = async ({ githubUsername, displayName, avatar }) => {
   const id = `user-${Date.now()}`;
-  await run(`INSERT INTO users (id, githubUsername, displayName, bio, age, ageVerified, experienceYears, stackTags, hobbies, likedUserIds, superLikedUserIds, nopedUserIds, matches, avatar)
-    VALUES (?, ?, ?, '', NULL, 0, 0, '[]', '', '[]', '[]', '[]', '[]', ?)`, [
+  await run(`INSERT INTO users (id, githubUsername, displayName, bio, age, ageVerified, experienceYears, stackTags, hobbies, likedUserIds, superLikedUserIds, nopedUserIds, matches, photoUrls, avatar)
+    VALUES (?, ?, ?, '', NULL, 0, 0, '[]', '', '[]', '[]', '[]', '[]', '[]', ?)`, [
     id,
     githubUsername,
     displayName,
@@ -534,6 +643,48 @@ const deleteEditorFile = async ({ userId, matchId, fileId }) => {
   };
 };
 
+const getNotificationsForUser = async (userId) => {
+  const rows = await all('SELECT * FROM notifications WHERE toUserId = ? ORDER BY createdAt DESC', [userId]);
+  return rows.map((row) => ({
+    id: row.id,
+    type: row.type,
+    fromUserId: row.fromUserId,
+    toUserId: row.toUserId,
+    createdAt: row.createdAt,
+    read: Boolean(row.read)
+  }));
+};
+
+const createNotification = async ({ type, fromUserId, toUserId }) => {
+  const notification = {
+    id: `notification-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    type,
+    fromUserId,
+    toUserId,
+    createdAt: Date.now(),
+    read: 0
+  };
+
+  await run('INSERT INTO notifications (id, type, fromUserId, toUserId, createdAt, read) VALUES (?, ?, ?, ?, ?, ?)', [
+    notification.id,
+    notification.type,
+    notification.fromUserId,
+    notification.toUserId,
+    notification.createdAt,
+    notification.read
+  ]);
+
+  return {
+    ...notification,
+    read: false
+  };
+};
+
+const markNotificationRead = async ({ notificationId, userId }) => {
+  const result = await run('UPDATE notifications SET read = 1 WHERE id = ? AND toUserId = ?', [notificationId, userId]);
+  return result.changes > 0;
+};
+
 const ensureAuthenticated = (req, res, next) => {
   if (req.isAuthenticated()) {
     return next();
@@ -541,8 +692,59 @@ const ensureAuthenticated = (req, res, next) => {
   res.status(401).json({ error: 'Not authenticated' });
 };
 
-app.use(express.json());
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || true, credentials: true }));
+const loginSessionUser = (req, user) => new Promise((resolve, reject) => {
+  req.login(user, (error) => {
+    if (error) {
+      reject(error);
+      return;
+    }
+    resolve();
+  });
+});
+
+const resolveSessionUser = async (req) => {
+  if (!req.isAuthenticated()) {
+    return null;
+  }
+
+  let user = await getUserById(req.user?.id);
+  if (user) {
+    return user;
+  }
+
+  const githubUsername = req.user?.githubUsername;
+  if (!githubUsername) {
+    return null;
+  }
+
+  user = await getUserByGithub(githubUsername);
+  if (!user) {
+    return null;
+  }
+
+  await loginSessionUser(req, user);
+  return user;
+};
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  return next();
+});
+app.use('/api/chats', express.json({ limit: EDITOR_JSON_LIMIT }));
+app.use(express.json({ limit: DEFAULT_JSON_LIMIT }));
+app.use(cors({ origin: true, credentials: true }));
 app.use(session({
   secret: SESSION_SECRET,
   resave: false,
@@ -587,19 +789,37 @@ app.get('/auth/user', async (req, res) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
-  const user = await getUserById(req.user.id);
+  const user = await resolveSessionUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Session user not found' });
+  }
   res.json(user);
 });
 
-app.post('/auth/logout', (req, res) => {
+const performLogout = (req, res, onSuccess) => {
   req.logout((err) => {
     if (err) {
       return res.status(500).json({ error: 'Logout failed' });
     }
     req.session.destroy(() => {
       res.clearCookie('connect.sid');
-      res.json({ success: true });
+      onSuccess();
     });
+  });
+};
+
+app.post('/auth/logout', (req, res) => {
+  performLogout(req, res, () => {
+    res.json({ success: true });
+  });
+});
+
+app.get('/auth/logout', (req, res) => {
+  const next = typeof req.query.next === 'string' && req.query.next.trim()
+    ? req.query.next.trim()
+    : GITHUB_SUCCESS_URL;
+  performLogout(req, res, () => {
+    res.redirect(next);
   });
 });
 
@@ -627,11 +847,19 @@ app.post('/api/users/guest', async (req, res, next) => {
 });
 
 app.get('/api/users', ensureAuthenticated, async (req, res) => {
+  const sessionUser = await resolveSessionUser(req);
+  if (!sessionUser) {
+    return res.status(401).json({ error: 'Session user not found' });
+  }
   const users = await getAllUsers();
   res.json(users);
 });
 
 app.get('/api/users/:id', ensureAuthenticated, async (req, res) => {
+  const sessionUser = await resolveSessionUser(req);
+  if (!sessionUser) {
+    return res.status(401).json({ error: 'Session user not found' });
+  }
   const user = await getUserById(req.params.id);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
@@ -640,7 +868,12 @@ app.get('/api/users/:id', ensureAuthenticated, async (req, res) => {
 });
 
 app.put('/api/users/:id/profile', ensureAuthenticated, async (req, res) => {
-  if (req.user.id !== req.params.id) {
+  const sessionUser = await resolveSessionUser(req);
+  if (!sessionUser) {
+    return res.status(401).json({ error: 'Session user not found' });
+  }
+
+  if (sessionUser.id !== req.params.id) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const current = await getUserById(req.params.id);
@@ -651,6 +884,7 @@ app.put('/api/users/:id/profile', ensureAuthenticated, async (req, res) => {
     ...current,
     ...req.body,
     stackTags: normalizeArray(req.body.stackTags || current.stackTags),
+    photoUrls: normalizeArray(req.body.photoUrls || current.photoUrls).filter((url) => typeof url === 'string' && url.trim()),
     likedUserIds: normalizeArray(current.likedUserIds),
     superLikedUserIds: normalizeArray(current.superLikedUserIds),
     nopedUserIds: normalizeArray(current.nopedUserIds),
@@ -716,6 +950,82 @@ app.post('/api/users/:id/nope', ensureAuthenticated, async (req, res) => {
   user.nopedUserIds = addUnique(normalizeArray(user.nopedUserIds), targetId);
   const saved = await saveUser(user);
   res.json(saved);
+});
+
+app.get('/api/notifications', ensureAuthenticated, async (req, res) => {
+  const sessionUser = await resolveSessionUser(req);
+  if (!sessionUser) {
+    return res.status(401).json({ error: 'Session user not found' });
+  }
+
+  const notifications = await getNotificationsForUser(sessionUser.id);
+  return res.json(notifications);
+});
+
+app.post('/api/notifications', ensureAuthenticated, async (req, res) => {
+  const sessionUser = await resolveSessionUser(req);
+  if (!sessionUser) {
+    return res.status(401).json({ error: 'Session user not found' });
+  }
+
+  const { type, fromUserId, toUserId } = req.body || {};
+  if (!type || !fromUserId || !toUserId) {
+    return res.status(400).json({ error: 'type, fromUserId and toUserId are required' });
+  }
+  if (sessionUser.id !== fromUserId) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const [fromUser, toUser] = await Promise.all([
+    getUserById(fromUserId),
+    getUserById(toUserId)
+  ]);
+  if (!fromUser || !toUser) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const notification = await createNotification({ type, fromUserId, toUserId });
+  return res.status(201).json(notification);
+});
+
+app.patch('/api/notifications/:id/read', ensureAuthenticated, async (req, res) => {
+  const sessionUser = await resolveSessionUser(req);
+  if (!sessionUser) {
+    return res.status(401).json({ error: 'Session user not found' });
+  }
+
+  const marked = await markNotificationRead({ notificationId: req.params.id, userId: sessionUser.id });
+  if (!marked) {
+    return res.status(404).json({ error: 'Notification not found' });
+  }
+  return res.json({ success: true, id: req.params.id });
+});
+
+app.delete('/api/users/:id', ensureAuthenticated, async (req, res) => {
+  if (req.user.id !== req.params.id) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const deleted = await deleteUserAccount(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    req.logout((logoutError) => {
+      if (logoutError) {
+        console.error('Failed to logout after account deletion:', logoutError);
+        return res.status(500).json({ error: 'Account deleted but logout failed' });
+      }
+      req.session.destroy(() => {
+        res.clearCookie('connect.sid');
+        res.json({ success: true, deletedUserId: req.params.id });
+      });
+    });
+  } catch (error) {
+    console.error('Failed to delete account:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
 });
 
 app.get('/api/chats/:matchId/messages', ensureAuthenticated, async (req, res) => {
@@ -792,6 +1102,26 @@ app.delete('/api/chats/:matchId/editor/files/:fileId', ensureAuthenticated, asyn
   res.json(removed);
 });
 
+app.use((error, req, res, next) => {
+  if (error?.type === 'entity.too.large') {
+    const requestLength = Number(req.headers['content-length'] || 0);
+    const limit = typeof error.limit === 'number' ? error.limit : null;
+    console.warn('[HTTP 413] request entity too large', {
+      method: req.method,
+      path: req.originalUrl,
+      contentLength: requestLength,
+      limit
+    });
+    return res.status(413).json({
+      error: 'Payload too large',
+      code: 'ENTITY_TOO_LARGE',
+      limit,
+      contentLength: requestLength
+    });
+  }
+  return next(error);
+});
+
 
 
 const server = http.createServer(app);
@@ -813,6 +1143,11 @@ const broadcastMessage = (payload) => {
 };
 
 initDatabase().then(() => {
+  console.log(`[DB] Using SQLite file: ${DB_FILE}`);
+  if (LEGACY_DB_FILE !== DB_FILE && fs.existsSync(LEGACY_DB_FILE)) {
+    console.warn(`[DB] Legacy SQLite file also exists (not used by this server): ${LEGACY_DB_FILE}`);
+  }
+  console.log(`[DB] ENABLE_WASABI_FIXTURES=${ENABLE_WASABI_FIXTURES}`);
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });

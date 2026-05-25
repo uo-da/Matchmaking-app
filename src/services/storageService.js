@@ -1,5 +1,8 @@
 const API_BASE = process.env.REACT_APP_API_BASE || '';
-const isLocalMode = process.env.NODE_ENV !== 'production';
+const isLocalMode = process.env.NODE_ENV === 'test' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
+const CHAT_STORAGE_PREFIX = 'matchmaking_chat_';
+const EDITOR_STORAGE_PREFIX = 'matchmaking_editor_files_';
+const DEMO_USER_ID_PREFIX = 'demo-';
 
 const getFallbackApiBase = () => {
   if (API_BASE) {
@@ -29,7 +32,6 @@ const sampleUsers = [
     bio: 'ReactとNode.jsでプロダクト開発をしています。',
     age: 28,
     gender: '男性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 5,
     stackTags: ['React', 'Node.js', 'TypeScript'],
@@ -54,7 +56,6 @@ const sampleUsers = [
     bio: 'インフラとインシデント対応が得意です。',
     age: 32,
     gender: '女性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 8,
     stackTags: ['AWS', 'Docker', 'Kubernetes'],
@@ -76,7 +77,6 @@ const sampleUsers = [
     bio: 'フロントエンドのUX改善が好きです。',
     age: 26,
     gender: '男性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 4,
     stackTags: ['React', 'Vue', 'CSS'],
@@ -96,7 +96,6 @@ const sampleUsers = [
     bio: 'GoとKubernetesの設計でパフォーマンスにこだわります。',
     age: 30,
     gender: '女性',
-    scoutNg: true,
     ageVerified: true,
     experienceYears: 7,
     stackTags: ['Go', 'Kubernetes', 'Terraform'],
@@ -119,13 +118,12 @@ const sampleUsers = [
     bio: 'UI/UX改善とデザインシステムが得意です。',
     age: 27,
     gender: '女性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 5,
     stackTags: ['Figma', 'React', 'CSS'],
     hobbies: 'カフェ, イラスト',
     likedUserIds: [],
-    superLikedUserIds: ['user-1'],
+    superLikedUserIds: [],
     nopedUserIds: [],
     matches: []
   },
@@ -143,7 +141,6 @@ const sampleUsers = [
     bio: 'モバイルアプリとAndroidネイティブが好きです。',
     age: 29,
     gender: '女性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 6,
     stackTags: ['Kotlin', 'Android', 'Jetpack'],
@@ -164,7 +161,6 @@ const sampleUsers = [
     bio: 'RustとWebAssemblyで高速なWeb体験を作ります。',
     age: 31,
     gender: '男性',
-    scoutNg: true,
     ageVerified: true,
     experienceYears: 7,
     stackTags: ['Rust', 'WebAssembly', 'React'],
@@ -186,7 +182,6 @@ const sampleUsers = [
     bio: '機械学習とデータパイプラインの設計を担当しています。',
     age: 33,
     gender: '男性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 9,
     stackTags: ['Python', 'TensorFlow', 'Airflow'],
@@ -208,7 +203,6 @@ const sampleUsers = [
     bio: 'チャット機能の検証用アカウントです。',
     age: 28,
     gender: '男性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 5,
     stackTags: ['React', 'Node.js', 'TypeScript'],
@@ -229,7 +223,6 @@ const sampleUsers = [
     bio: 'wasabi49の検証用ダミーアカウントです。',
     age: 27,
     gender: '女性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 4,
     stackTags: ['React', 'Figma'],
@@ -251,7 +244,6 @@ const sampleUsers = [
     bio: 'wasabi49の検証用ダミーアカウントです。',
     age: 30,
     gender: '男性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 6,
     stackTags: ['Python', 'AWS'],
@@ -272,7 +264,6 @@ const sampleUsers = [
     bio: 'wasabi49の検証用ダミーアカウントです。',
     age: 25,
     gender: '女性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 3,
     stackTags: ['Go', 'Kubernetes'],
@@ -309,6 +300,38 @@ const fetchJson = async (path, options = {}) => {
     }
     throw new Error(error.message || 'Network request failed');
   }
+};
+
+const requestDeleteAccount = async (userId) => {
+  const encodedUserId = encodeURIComponent(userId);
+  const path = `/api/users/${encodedUserId}`;
+  const bases = Array.from(new Set([API_BASE, getFallbackApiBase()].filter((base) => typeof base === 'string')));
+  if (bases.length === 0) {
+    bases.push('');
+  }
+
+  let lastError = null;
+  for (const base of bases) {
+    try {
+      const response = await fetch(`${base}${path}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        return true;
+      }
+      const message = await response.text();
+      lastError = new Error(`API request failed: ${response.status} ${message}`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('Failed to delete account');
 };
 
 const storageService = {
@@ -374,30 +397,132 @@ const storageService = {
     return null;
   },
 
-  saveCurrentSession(user) {
-    if (isLocalMode) {
-      try {
-        const minimal = {
-          id: user && user.id,
-          githubUsername: user && user.githubUsername,
-          displayName: user && user.displayName,
-          avatar: user && user.avatar,
-          ageVerified: user && user.ageVerified
-        };
-        window.localStorage.setItem('matchmaking_session', JSON.stringify(minimal));
-      } catch (e) {
-        // Do not block app if storage quota exceeded
-        // eslint-disable-next-line no-console
-        console.warn('Failed to save session to localStorage', e);
-      }
-      return user;
+ saveCurrentSession(user) {
+  if (isLocalMode) {
+    try {
+      const minimal = {
+        id: user?.id,
+        githubUsername: user?.githubUsername,
+        displayName: user?.displayName,
+        avatar: user?.avatar,
+        ageVerified: user?.ageVerified
+      };
+
+      window.localStorage.setItem('matchmaking_session', JSON.stringify(minimal));
+
+      window.localStorage.setItem('currentUser', JSON.stringify(user));
+
+      const users = this.getUsers();
+      const dedupedUsers = users.filter((item) => (
+        item.id !== user.id &&
+        (!user.githubUsername || item.githubUsername !== user.githubUsername)
+      ));
+
+      const nextUsers = [...dedupedUsers, user];
+      this.setUsers(nextUsers);
+
+    } catch (e) {
+      console.warn('Failed to save session to localStorage', e);
     }
+
     return user;
-  },
+  }
+  return user;
+},
 
   clearCurrentSession() {
     if (isLocalMode) {
       window.localStorage.removeItem('matchmaking_session');
+      window.localStorage.removeItem('currentUser');
+    }
+  },
+
+  async deleteAccount(userId) {
+    if (!userId) {
+      return false;
+    }
+    const isDemoUser = String(userId).startsWith(DEMO_USER_ID_PREFIX);
+
+    const deleteLocalAccount = () => {
+      const users = this.getUsers();
+      const targetUser = users.find((user) => user.id === userId);
+      if (!targetUser) {
+        return false;
+      }
+
+      const removedIds = new Set(
+        users
+          .filter((user) => user.id === userId || user.githubUsername === targetUser.githubUsername)
+          .map((user) => user.id)
+      );
+      const counterpartIds = users
+        .filter((user) => !removedIds.has(user.id))
+        .map((user) => user.id);
+
+      const removeDeletedIds = (value) => (
+        Array.isArray(value) ? value.filter((id) => !removedIds.has(id)) : []
+      );
+      const updatedUsers = users
+        .filter((user) => !removedIds.has(user.id))
+        .map((user) => ({
+          ...user,
+          likedUserIds: removeDeletedIds(user.likedUserIds),
+          superLikedUserIds: removeDeletedIds(user.superLikedUserIds),
+          nopedUserIds: removeDeletedIds(user.nopedUserIds),
+          matches: removeDeletedIds(user.matches)
+        }));
+      this.setUsers(updatedUsers);
+
+      removedIds.forEach((removedId) => {
+        counterpartIds.forEach((counterpartId) => {
+          const matchKey = [removedId, counterpartId].sort().join('-');
+          window.localStorage.removeItem(`${CHAT_STORAGE_PREFIX}${matchKey}`);
+          window.localStorage.removeItem(`${EDITOR_STORAGE_PREFIX}${matchKey}`);
+        });
+      });
+
+      const notifications = this.getAllNotifications().filter((notification) => (
+        !removedIds.has(notification.fromUserId) && !removedIds.has(notification.toUserId)
+      ));
+      window.localStorage.setItem('matchmaking_notifications', JSON.stringify(notifications));
+
+      const currentRaw = window.localStorage.getItem('currentUser');
+      if (currentRaw) {
+        try {
+          const currentUser = JSON.parse(currentRaw);
+          if (currentUser?.id && removedIds.has(currentUser.id)) {
+            window.localStorage.removeItem('currentUser');
+          }
+        } catch {
+          window.localStorage.removeItem('currentUser');
+        }
+      }
+      const sessionRaw = window.localStorage.getItem('matchmaking_session');
+      if (sessionRaw) {
+        try {
+          const sessionUser = JSON.parse(sessionRaw);
+          if (sessionUser?.id && removedIds.has(sessionUser.id)) {
+            this.clearCurrentSession();
+          }
+        } catch {
+          this.clearCurrentSession();
+        }
+      }
+
+      return true;
+    };
+
+    try {
+      await requestDeleteAccount(userId);
+      if (isLocalMode) {
+        deleteLocalAccount();
+      }
+      return true;
+    } catch (error) {
+      if (isLocalMode && isDemoUser) {
+        return deleteLocalAccount();
+      }
+      throw error;
     }
   },
 
@@ -412,7 +537,6 @@ const storageService = {
         bio: '',
         age: null,
         gender: '',
-        scoutNg: false,
         ageVerified: false,
         experienceYears: 0,
         stackTags: [],
@@ -438,7 +562,6 @@ const storageService = {
         bio: '',
         age: null,
         gender: '',
-        scoutNg: false,
         ageVerified: false,
         experienceYears: 0,
         stackTags: [],
@@ -448,6 +571,7 @@ const storageService = {
         nopedUserIds: [],
         matches: [],
         avatar: '',
+        superLikeDates: [],
         ...profile
       };
       const exists = users.some((user) => user.id === normalizedProfile.id);
@@ -551,7 +675,7 @@ const storageService = {
   },
 
   // 通知関連メソッド
-  getNotifications(userId) {
+  async getNotifications(userId) {
     if (isLocalMode) {
       try {
         const raw = window.localStorage.getItem('matchmaking_notifications');
@@ -561,11 +685,10 @@ const storageService = {
         return [];
       }
     }
-    // TODO: API実装
-    return [];
+    return fetchJson('/api/notifications');
   },
 
-  addNotification(type, fromUserId, toUserId) {
+  async addNotification(type, fromUserId, toUserId) {
     if (isLocalMode) {
       const notifications = this.getAllNotifications();
       const newNotification = {
@@ -580,11 +703,13 @@ const storageService = {
       window.localStorage.setItem('matchmaking_notifications', JSON.stringify(notifications));
       return newNotification;
     }
-    // TODO: API実装
-    return null;
+    return fetchJson('/api/notifications', {
+      method: 'POST',
+      body: JSON.stringify({ type, fromUserId, toUserId })
+    });
   },
 
-  markNotificationAsRead(notificationId) {
+  async markNotificationAsRead(notificationId) {
     if (isLocalMode) {
       const notifications = this.getAllNotifications();
       const updatedNotifications = notifications.map(notification =>
@@ -595,8 +720,10 @@ const storageService = {
       window.localStorage.setItem('matchmaking_notifications', JSON.stringify(updatedNotifications));
       return true;
     }
-    // TODO: API実装
-    return false;
+    await fetchJson(`/api/notifications/${encodeURIComponent(notificationId)}/read`, {
+      method: 'PATCH'
+    });
+    return true;
   },
 
   getAllNotifications() {
