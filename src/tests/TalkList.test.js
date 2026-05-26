@@ -50,7 +50,7 @@ describe('TalkList', () => {
     await user.click(screen.getByRole('button', { name: 'Kenとのトークを開く' }));
     expect(onSelectMatch).toHaveBeenCalledWith('u3');
 
-    await user.click(screen.getByRole('button', { name: /Rin/ }));
+    await user.click(screen.getByText('よろしく').closest('button'));
     expect(onSelectMatch).toHaveBeenCalledWith('u2');
   });
 
@@ -67,5 +67,30 @@ describe('TalkList', () => {
 
     expect(screen.getByText('まだマッチしていません')).toBeInTheDocument();
     expect(screen.getByText('ここにトークが表示されます')).toBeInTheDocument();
+  });
+
+  test('shows latest 4 match images in new matches strip', () => {
+    render(
+      <TalkList
+        currentUser={{ id: 'me', matches: ['u1', 'u2', 'u3', 'u4', 'u5'] }}
+        users={[
+          { id: 'me', displayName: 'Me' },
+          { id: 'u1', displayName: 'Aoi', photoUrls: ['https://example.com/aoi.png'] },
+          { id: 'u2', displayName: 'Rin', photoUrls: ['https://example.com/rin.png'] },
+          { id: 'u3', displayName: 'Ken', photoUrls: ['https://example.com/ken.png'] },
+          { id: 'u4', displayName: 'Sora', photoUrls: ['https://example.com/sora.png'] },
+          { id: 'u5', displayName: 'Mio', photoUrls: ['https://example.com/mio.png'] }
+        ]}
+        matchedUserIds={new Set(['u1', 'u2', 'u3', 'u4', 'u5'])}
+        messagesByMatchId={{}}
+        onSelectMatch={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Mioとのトークを開く' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Soraとのトークを開く' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Kenとのトークを開く' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rinとのトークを開く' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aoiとのトークを開く' })).not.toBeInTheDocument();
   });
 });

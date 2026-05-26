@@ -1500,19 +1500,29 @@ button.superlike {
 }
 
 .chat-editor__back {
-  border: none;
-  background: transparent;
+  border: 1px solid #d8e1ec;
+  border-radius: 12px;
+  background: #ffffff;
   padding: 0;
-  width: 42px;
-  height: 42px;
-  font-size: 2.2rem;
-  line-height: 0.7;
-  font-weight: 800;
-  color: #000000;
+  width: 44px;
+  height: 44px;
+  font-size: var(--font-size-3xl);
+  line-height: 1;
+  font-weight: 700;
+  color: #334155;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.chat-editor__back:hover {
+  background: #f8fafc;
+}
+
+.chat-editor__back:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
 .chat-editor__actions {
@@ -1628,6 +1638,8 @@ button.superlike {
   flex: 1;
   min-height: 0;
   padding: 0;
+  display: flex;
+  overflow: hidden;
 }
 
 .chat-editor__status {
@@ -1641,15 +1653,18 @@ button.superlike {
 }
 
 .chat-editor__codemirror {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .chat-editor__codemirror .cm-editor {
   height: 100%;
+  min-height: 0;
 }
 
 .chat-editor__codemirror .cm-scroller {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  overflow: auto;
 }
 
 @media (min-width: 769px) {
@@ -1668,9 +1683,15 @@ button.superlike {
   .chat-room--editor-open .chat-editor {
     position: relative;
     width: 100%;
+    min-height: 0;
     transform: translateX(0);
     box-shadow: none;
     z-index: 1;
+    overflow: hidden;
+  }
+
+  .chat-room--editor-open .chat-room__chat-pane {
+    min-height: 0;
   }
 
   .chat-room--editor-open .chat-editor__back {
@@ -1778,6 +1799,10 @@ button.superlike {
   .chat-editor__back {
     grid-area: back;
     justify-self: start;
+    width: 38px;
+    height: 38px;
+    font-size: 1.5rem;
+    border-radius: 11px;
   }
 
   .chat-editor__title {
@@ -3016,11 +3041,15 @@ button.small-button.active-tag {
   }
 
   .new-match-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+    overflow: visible;
+    padding-bottom: 0;
   }
 
   .new-match-thumb {
-    width: min(104px, 28vw);
+    width: 100%;
     border-radius: 10px;
   }
 

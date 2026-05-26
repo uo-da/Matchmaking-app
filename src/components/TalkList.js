@@ -44,12 +44,14 @@ function TalkList({ currentUser, users, matchedUserIds, messagesByMatchId = {}, 
   }, [currentUser.id, matchedUsers, messagesByMatchId]);
 
   const newMatches = useMemo(() => {
-    const unseen = talkItems.filter((item) => item.lastTimestamp === 0);
-    if (unseen.length > 0) {
-      return unseen.slice(0, 6);
-    }
-    return talkItems.slice(0, 6);
-  }, [talkItems]);
+    const ids = Array.isArray(currentUser.matches) ? currentUser.matches : [];
+    const userMap = new Map(matchedUsers.map((user) => [user.id, user]));
+    return [...ids]
+      .reverse()
+      .map((id) => userMap.get(id))
+      .filter(Boolean)
+      .slice(0, 4);
+  }, [currentUser.matches, matchedUsers]);
 
   return (
     <div className="talk-screen">
@@ -59,7 +61,7 @@ function TalkList({ currentUser, users, matchedUserIds, messagesByMatchId = {}, 
           <p className="talk-empty">まだマッチしていません</p>
         ) : (
           <div className="new-match-strip" role="list">
-            {newMatches.map(({ user }) => {
+            {newMatches.map((user) => {
               const imageCandidates = getUserImageCandidates(user, 260);
               return (
                 <button
