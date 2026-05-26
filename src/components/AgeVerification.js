@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 function AgeVerification({ onConfirm, onBack }) {
   const [age, setAge] = useState('');
   const [error, setError] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -19,6 +20,12 @@ function AgeVerification({ onConfirm, onBack }) {
       return;
     }
     setError('');
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirm = () => {
+    const parsedAge = Number(age);
+    setShowConfirmModal(false);
     onConfirm(parsedAge);
   };
 
@@ -47,6 +54,24 @@ function AgeVerification({ onConfirm, onBack }) {
           </button>
         )}
       </div>
+      {showConfirmModal && (
+        <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
+          <div className="age-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="age-confirm-modal__icon">🎂</div>
+            <h2 className="age-confirm-modal__title">年齢確認</h2>
+            <p className="age-confirm-modal__message">この年齢で合っていますか？</p>
+            <p className="age-confirm-modal__age">{age}歳</p>
+            <div className="age-confirm-modal__actions">
+              <button type="button" className="secondary-button" onClick={() => setShowConfirmModal(false)}>
+                いいえ
+              </button>
+              <button type="button" className="primary-button" onClick={handleConfirm}>
+                はい
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
