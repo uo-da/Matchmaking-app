@@ -644,9 +644,14 @@ function App() {
 
   const handleProfileSave = async (profile) => {
     try {
+      const wasInitialRegistration = Boolean(currentUser?.ageVerified && currentUser && !isProfileComplete(currentUser));
       const updated = await storageService.saveUserProfile({ ...currentUser, ...profile });
       setAllUsers((prev) => upsertUser(prev, updated));
       setCurrentUser(updated);
+      if (wasInitialRegistration) {
+        // 初期登録フロー完了後はスワイプ画面（users）に遷移する
+        setSelectedTab('users');
+      }
     } catch (error) {
       console.error('Failed to save profile:', error);
       const message = error instanceof Error ? error.message : '不明なエラー';
@@ -655,7 +660,10 @@ function App() {
   };
 
   const isProfileComplete = (user) => {
-    return user.stackTags && user.stackTags.length > 0 && user.experienceYears > 0;
+    const hasName = user && user.displayName && user.displayName.trim().length > 0;
+    const hasPhotos = Array.isArray(user.photoUrls) ? user.photoUrls.length > 0 : false;
+    const hasYears = user && Number(user.experienceYears) > 0;
+    return hasName && hasPhotos && hasYears;
   };
 
   const isInitialRegistration = Boolean(currentUser?.ageVerified && currentUser && !isProfileComplete(currentUser));
@@ -932,7 +940,7 @@ function App() {
   }
 
   if (!currentUser.ageVerified) {
-    return <AgeVerification onConfirm={handleAgeConfirm} />;
+    return <AgeVerification onConfirm={handleAgeConfirm} onBack={() => setCurrentUser(null)} />;
   }
 
   if (isInitialRegistration) {

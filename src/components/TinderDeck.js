@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import ProfileView from './ProfileView';
 import { formatExperienceYears } from '../utils/experience';
 
 const RECOMMENDED_MIN_SHARED_TAGS = 2;
@@ -125,6 +126,23 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
   const currentCardLikedYou = currentUserCard
     ? currentUserCard.likedUserIds.includes(currentUser.id) || currentUserCard.superLikedUserIds.includes(currentUser.id)
     : false;
+  
+    const [modalUser, setModalUser] = useState(null);
+
+  useEffect(() => {
+    if (!modalUser) return undefined;
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setModalUser(null);
+      }
+    };
+
+    window.addEventListener('keydown', onKey);
+
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modalUser]);
+
   const currentTagMatchInfo = useMemo(() => (
     getTagMatchInfo(currentUser?.stackTags, currentUserCard?.stackTags)
   ), [currentUser?.stackTags, currentUserCard?.stackTags]);
@@ -487,10 +505,24 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
                     `${formatExperienceYears(currentUserCard.experienceYears)}の経験があります。`
                   )}
                 </p>
-                <div className="deck-card__tags">
-                  {currentUserCard.stackTags.slice(0, 3).map((tag) => (
-                    <span key={tag} className="deck-card__tag">{tag}</span>
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div className="deck-card__tags">
+                    {currentUserCard.stackTags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="deck-card__tag">{tag}</span>
+                    ))}
+                  </div>
+                  <div style={{ marginLeft: 12 }}>
+                    <button
+                      type="button"
+                      className="deck-card__profile-btn"
+                      aria-label="プロフィールを見る"
+                      onClick={(e) => { e.stopPropagation(); setModalUser(currentUserCard); }}
+                      onPointerDown={(e) => { e.stopPropagation(); }}
+                      style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}
+                    >
+                      👤
+                    </button>
+                  </div>
                 </div>
                 {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
               </div>
@@ -547,6 +579,16 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
       ) : (
         <div className="empty-state">
           条件に合うカードはもうありません。設定を調整してみましょう。
+        </div>
+      )}
+      {modalUser && (
+        <div className="modal-overlay" onClick={() => setModalUser(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, maxWidth: 720, width: '90%', maxHeight: '90%', overflow: 'auto', padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" aria-label="閉じる" onClick={() => setModalUser(null)} style={{ background: 'none', border: 'none', fontSize: 20 }}>✕</button>
+            </div>
+            <ProfileView user={modalUser} readOnly title={`${modalUser.displayName}のプロフィール`} onSave={() => {}} />
+          </div>
         </div>
       )}
     </div>
