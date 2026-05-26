@@ -3,6 +3,12 @@ import { EXPERIENCE_MAX_YEARS, normalizeExperienceYears } from '../utils/experie
 
 const popularTags = ['Python', 'Java', 'Go', 'JavaScript', 'TypeScript', 'AWS', 'Docker', 'Kubernetes'];
 const yearOptions = Array.from({ length: EXPERIENCE_MAX_YEARS }, (_, index) => index + 1);
+const PROFILE_MAX_LENGTHS = {
+  displayName: 30,
+  bio: 200,
+  stackTags: 100,
+  hobbies: 200
+};
 
 /**
  * @param {{ user: Object, onSave: (profile: Object) => void }} props
@@ -23,7 +29,11 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    const normalizedValue = name === 'experienceYears' ? normalizeExperienceYears(value) : value;
+    const normalizedValue = name === 'experienceYears'
+      ? normalizeExperienceYears(value)
+      : PROFILE_MAX_LENGTHS[name]
+        ? value.slice(0, PROFILE_MAX_LENGTHS[name])
+        : value;
     setProfile((prev) => ({ ...prev, [name]: normalizedValue }));
   };
 
@@ -142,13 +152,28 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
 
         <div className="profile-card__field">
           <label htmlFor="displayName">Name</label>
-          <input id="displayName" name="displayName" value={profile.displayName} onChange={handleChange} placeholder="Name" />
+          <input
+            id="displayName"
+            name="displayName"
+            value={profile.displayName}
+            onChange={handleChange}
+            placeholder="Name"
+            maxLength={PROFILE_MAX_LENGTHS.displayName}
+          />
           {errors.displayName && <div className="profile-card__error">{errors.displayName}</div>}
         </div>
 
         <div className="profile-card__field">
           <label htmlFor="bio">自己紹介</label>
-          <textarea id="bio" name="bio" value={profile.bio} onChange={handleChange} rows="4" placeholder="バックエンドエンジニアです。" />
+          <textarea
+            id="bio"
+            name="bio"
+            value={profile.bio}
+            onChange={handleChange}
+            rows="4"
+            placeholder="バックエンドエンジニアです。"
+            maxLength={PROFILE_MAX_LENGTHS.bio}
+          />
         </div>
 
         <div className="profile-card__field">
@@ -173,32 +198,51 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
         </div>
 
         <div className="profile-card__field">
-          <label>技術タグ</label>
+          <label>技術スタック</label>
           <div className="profile-card__tag-list">
-            {popularTags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                className={`small-button ${((profile.stackTags || '').split(',').map((item) => item.trim()).includes(tag) ? 'active-tag' : '')}`}
-                onClick={() => handleTagClick(tag)}
-              >
-                {tag}
-              </button>
-            ))}
+            {popularTags.map((tag) => {
+              const selectedTags = (profile.stackTags || '')
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean);
+              const isActive = selectedTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`tag-chip ${isActive ? 'tag-chip--active' : ''}`}
+                  aria-pressed={isActive}
+                  onClick={() => handleTagClick(tag)}
+                >
+                  <span className="tag-chip__check" aria-hidden="true">✓</span>
+                  {tag}
+                </button>
+              );
+            })}
           </div>
-          <input
+          <textarea
             id="stackTags"
             name="stackTags"
             value={profile.stackTags}
             onChange={handleChange}
-            placeholder="カンマ区切りでタグを登録(例) Java, AWS,"
+            placeholder="カンマ区切りでタグを登録（例）Java, AWS"
+            maxLength={PROFILE_MAX_LENGTHS.stackTags}
+            rows={2}
           />
           {errors.stackTags && <div className="profile-card__error">{errors.stackTags}</div>}
         </div>
 
         <div className="profile-card__field">
           <label htmlFor="hobbies">趣味</label>
-          <input id="hobbies" name="hobbies" value={profile.hobbies} onChange={handleChange} placeholder="カンマ区切りでタグを登録(例) 散歩, PC," />
+          <textarea
+            id="hobbies"
+            name="hobbies"
+            value={profile.hobbies}
+            onChange={handleChange}
+            placeholder="カンマ区切りでタグを登録(例) 散歩, PC,"
+            maxLength={PROFILE_MAX_LENGTHS.hobbies}
+            rows={2}
+          />
         </div>
 
         <button type="submit" className="primary-button profile-card__save-button">

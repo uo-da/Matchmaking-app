@@ -465,6 +465,32 @@ body {
   font-weight: 700;
 }
 
+.deck-card__profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 9999px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease, color 160ms ease;
+  white-space: nowrap;
+}
+
+.deck-card__profile-btn:hover {
+  background: #e2e8f0;
+}
+
+.deck-card__profile-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 .deck-card__hint {
   color: #64748b;
   font-size: 0.95rem;
@@ -2660,7 +2686,8 @@ button.superlike {
   gap: 10px;
 }
 
-.settings-stack-chip {
+.settings-stack-chip,
+.tag-chip {
   border: 1.5px solid #cbd5e1;
   border-radius: 9999px;
   background: #ffffff;
@@ -2677,14 +2704,16 @@ button.superlike {
   transition: background 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 
-.settings-stack-chip--active {
+.settings-stack-chip--active,
+.tag-chip--active {
   border-color: #ef4444;
   background: #fff1f2;
   color: #991b1b;
   box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.22);
 }
 
-.settings-stack-chip__check {
+.settings-stack-chip__check,
+.tag-chip__check {
   width: 17px;
   height: 17px;
   border-radius: 999px;
@@ -2697,7 +2726,8 @@ button.superlike {
   line-height: 1;
 }
 
-.settings-stack-chip--active .settings-stack-chip__check {
+.settings-stack-chip--active .settings-stack-chip__check,
+.tag-chip--active .tag-chip__check {
   background: #ef4444;
   color: #ffffff;
 }
@@ -3304,7 +3334,8 @@ button.small-button.active-tag {
     gap: 10px;
   }
 
-  .settings-stack-chip {
+  .settings-stack-chip,
+  .tag-chip {
     font-size: 0.9rem;
     padding: 6px 10px;
   }

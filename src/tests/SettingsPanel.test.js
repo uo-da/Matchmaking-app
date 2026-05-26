@@ -44,6 +44,7 @@ describe('SettingsPanel', () => {
     let next = getNextFilter(onFilterChange);
     expect(next.stackTags).toEqual(['React', 'Node.js']);
     expect(next.stackTag).toBe('React');
+    expect(screen.getByRole('textbox', { name: '技術スタックタグ入力' })).toHaveValue('React, Node.js');
 
     const input = screen.getByLabelText('技術スタックタグ入力');
     await user.type(input, 'Go, Rust, Go');

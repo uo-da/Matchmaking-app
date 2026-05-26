@@ -17,6 +17,26 @@
   font-size: 13px;
 }
 
+/* Prevent long words from overflowing the profile card */
+.profile-card__bio {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  margin: 8px 0 0;
+  color: #475569;
+}
+
+.profile-card__hobby,
+.tag {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  padding: 6px 10px;
+  border-radius: 16px;
+  background: #f5f5f5;
+  font-size: 12px;
+}
+
 .github-calendar__wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;

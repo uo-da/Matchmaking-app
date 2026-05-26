@@ -31,6 +31,9 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
     return filter.stackTag ? [filter.stackTag] : [];
   });
   const [customTags, setCustomTags] = useState('');
+  const TAG_INPUT_MAX_LENGTH = 100;
+
+  const tagInputValue = customTags.trim() || selectedStacks.join(', ').slice(0, TAG_INPUT_MAX_LENGTH);
 
   const ageTrackStyle = useMemo(() => {
     const min = 18;
@@ -57,6 +60,7 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
     const exists = selectedStacks.includes(stack);
     const nextStacks = exists ? selectedStacks.filter((item) => item !== stack) : [...selectedStacks, stack];
     setSelectedStacks(nextStacks);
+    setCustomTags('');
     updateFilterStack(nextStacks);
   };
 
@@ -66,6 +70,7 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
       .map((item) => item.trim())
       .filter(Boolean);
     if (normalized.length === 0) {
+      setCustomTags('');
       return;
     }
     const nextStacks = Array.from(new Set([...selectedStacks, ...normalized]));
@@ -133,22 +138,23 @@ function SettingsPanel({ filter, onFilterChange, onLogout, onDeleteAccount }) {
                 <button
                   key={stack}
                   type="button"
-                  className={`settings-stack-chip ${selectedStacks.includes(stack) ? 'settings-stack-chip--active' : ''}`}
+                  className={`tag-chip ${selectedStacks.includes(stack) ? 'tag-chip--active' : ''}`}
                   aria-pressed={selectedStacks.includes(stack)}
                   onClick={() => toggleStack(stack)}
                 >
-                  <span className="settings-stack-chip__check" aria-hidden="true">✓</span>
+                  <span className="tag-chip__check" aria-hidden="true">✓</span>
                   {stack}
                 </button>
               ))}
             </div>
             <input
               type="text"
-              value={customTags}
-              onChange={(event) => setCustomTags(event.target.value)}
+              value={tagInputValue}
+              onChange={(event) => setCustomTags(event.target.value.slice(0, TAG_INPUT_MAX_LENGTH))}
               onBlur={handleCustomTagsBlur}
-              placeholder="カンマ区切りでタグを登録(例) Java, AWS,)"
+              placeholder="カンマ区切りでタグを登録（例）Java, AWS"
               aria-label="技術スタックタグ入力"
+              maxLength={TAG_INPUT_MAX_LENGTH}
             />
           </div>
         </div>

@@ -38,7 +38,7 @@ function ProfileView({ user, onSave, readOnly = false, title = 'マイプロフ�
                 <div style={{ color: '#999', fontSize: 12 }}>ID:{user.githubUsername || ''}</div>
               </div>
             </div>
-            <p style={{ marginTop: 8 }}>{user.bio}</p>
+            <p className="profile-card__bio" style={{ marginTop: 8 }}>{user.bio}</p>
 
             <div style={{ marginTop: 8 }}>
               <div style={{ fontSize: 12, color: '#333' }}>経験年数</div>
@@ -58,7 +58,7 @@ function ProfileView({ user, onSave, readOnly = false, title = 'マイプロフ�
               <div style={{ fontSize: 12, color: '#333' }}>趣味</div>
               <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {(user.hobbies || '').split(',').map((h) => h.trim()).filter(Boolean).map((h) => (
-                  <span key={h} style={{ padding: '6px 10px', borderRadius: 16, background: '#f5f5f5', fontSize: 12 }}>{h}</span>
+                  <span key={h} className="profile-card__hobby">{h}</span>
                 ))}
               </div>
             </div>
