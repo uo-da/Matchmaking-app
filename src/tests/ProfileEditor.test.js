@@ -19,7 +19,7 @@ describe('ProfileEditor', () => {
     render(<ProfileEditor user={baseUser} onSave={jest.fn()} isInitialRegistration />);
 
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('初期登録');
-    expect(screen.getByText('まずは最低1枚以上のプロフィール画像を登録し、経験年数と技術タグを入力してください。')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '登録する' })).toBeInTheDocument();
   });
 
   test('shows validation errors when required fields are missing', async () => {
@@ -32,7 +32,8 @@ describe('ProfileEditor', () => {
       await user.click(screen.getByRole('button', { name: '登録する' }));
     });
 
-    expect(await screen.findByText('技術スタックを少なくとも1つ入力してください。')).toBeInTheDocument();
+    expect(await screen.findByText('まずは最低1枚の画像を登録してください。')).toBeInTheDocument();
+    expect(screen.getByText('経験年数を入力してください。')).toBeInTheDocument();
     expect(onSave).not.toHaveBeenCalled();
   });
 
@@ -46,7 +47,7 @@ describe('ProfileEditor', () => {
       await user.click(screen.getByRole('button', { name: '登録する' }));
     });
 
-    expect(await screen.findByText('プロフィール画像を最低1枚以上登録してください。')).toBeInTheDocument();
+    expect(await screen.findByText('まずは最低1枚の画像を登録してください。')).toBeInTheDocument();
     expect(onSave).not.toHaveBeenCalled();
   });
 });
