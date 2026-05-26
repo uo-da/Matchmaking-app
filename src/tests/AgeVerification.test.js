@@ -21,6 +21,7 @@ describe('AgeVerification', () => {
     await user.clear(screen.getByLabelText('年齢'));
     await user.type(screen.getByLabelText('年齢'), '21');
     await user.click(screen.getByRole('button', { name: '確認して次へ' }));
+    await user.click(screen.getByRole('button', { name: 'はい' }));
 
     expect(onConfirm).toHaveBeenCalledWith(21);
     expect(screen.queryByText('18歳以上のユーザーのみ利用できます。')).not.toBeInTheDocument();
