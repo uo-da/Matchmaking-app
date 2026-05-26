@@ -119,6 +119,7 @@ function App() {
   const [superLikeLimitModal, setSuperLikeLimitModal] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotificationList, setShowNotificationList] = useState(false);
+  const [notificationProfileUser, setNotificationProfileUser] = useState(null);
   const notificationButtonRef = useRef(null);
   const prefetchedSessionUserRef = useRef(null);
   const swipeQueueRef = useRef([]);
@@ -561,6 +562,7 @@ function App() {
     setMatchModal(null);
     setNotifications([]);
     setShowNotificationList(false);
+    setNotificationProfileUser(null);
     setIsViewStateHydrated(false);
     setAuthError(false);
     prefetchedSessionUserRef.current = null;
@@ -605,6 +607,7 @@ function App() {
       setMatchModal(null);
       setNotifications([]);
       setShowNotificationList(false);
+      setNotificationProfileUser(null);
       setIsViewStateHydrated(false);
       setAuthError(false);
       prefetchedSessionUserRef.current = null;
@@ -909,14 +912,27 @@ function App() {
 
     const type = notification.type;
     const fromUserId = notification.fromUserId;
+    if (type === 'superLike' && fromUserId) {
+      const fromUser = allUsers.find((user) => user.id === fromUserId);
+      setShowNotificationList(false);
+      if (fromUser) {
+        setNotificationProfileUser(fromUser);
+      }
+      return;
+    }
+
     if (type === 'match' && fromUserId) {
       setShowNotificationList(false);
+      setNotificationProfileUser(null);
+      if (!matchedUserIds.has(fromUserId)) {
+        setSelectedTab('matches');
+        setSelectedMatchId(null);
+        return;
+      }
       setSelectedTab('chat');
       setSelectedMatchId(fromUserId);
       return;
     }
-
-    // like / superLike のプロフィール詳細遷移先は未実装のため、現時点では既読化のみ。
   };
 
   const isChatDetail = selectedTab === 'chat' && Boolean(selectedMatchId);
@@ -940,17 +956,22 @@ function App() {
   }
 
   if (!currentUser.ageVerified) {
-    return <AgeVerification onConfirm={handleAgeConfirm} onBack={() => setCurrentUser(null)} />;
+    return <AgeVerification onConfirm={handleAgeConfirm} />;
   }
 
   if (isInitialRegistration) {
     return (
-      <div className="registration-shell">
-        <div className="registration-header">
-          <h1>初期登録</h1>
-          <p>まずはプロフィールを登録して、スワイプ画面に進みましょう。</p>
-        </div>
-        <ProfileEditor user={currentUser} onSave={handleProfileSave} isInitialRegistration />
+      <div className="app-shell">
+        <header className="app-header">
+          <div className="header-brand">
+            <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
+          </div>
+        </header>
+        <main className="app-main">
+          <div className="registration-shell">
+            <ProfileEditor user={currentUser} onSave={handleProfileSave} isInitialRegistration />
+          </div>
+        </main>
       </div>
     );
   }
@@ -1081,6 +1102,25 @@ function App() {
             <button type="button" className="primary-button" onClick={() => setSuperLikeLimitModal(false)}>
               OK
             </button>
+          </div>
+        </div>
+      )}
+      {notificationProfileUser && (
+        <div className="modal-overlay" onClick={() => setNotificationProfileUser(null)}>
+          <div
+            className="notification-profile-modal"
+            onClick={(event) => event.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 8, maxWidth: 720, width: '90%', maxHeight: '90%', overflow: 'auto', padding: 16 }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" aria-label="閉じる" onClick={() => setNotificationProfileUser(null)} style={{ background: 'none', border: 'none', fontSize: 20 }}>✕</button>
+            </div>
+            <ProfileView
+              user={notificationProfileUser}
+              readOnly
+              title={`${notificationProfileUser.displayName}のプロフィール`}
+              onSave={() => {}}
+            />
           </div>
         </div>
       )}

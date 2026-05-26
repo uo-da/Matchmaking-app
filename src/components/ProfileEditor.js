@@ -20,8 +20,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
     stackTags: (user.stackTags || []).join(', '),
     experienceYears: user.experienceYears || 0,
     hobbies: user.hobbies || '',
-    photoUrls: user.photoUrls || [],
-    gender: user.gender || ''
+    photoUrls: user.photoUrls || []
   });
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
@@ -105,8 +104,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
       stackTags: (profile.stackTags || '').split(',').map((tag) => tag.trim()).filter(Boolean),
       experienceYears: normalizeExperienceYears(profile.experienceYears),
       hobbies: profile.hobbies.trim(),
-      photoUrls: profile.photoUrls,
-      gender: profile.gender
+      photoUrls: profile.photoUrls
     });
   };
 
@@ -115,6 +113,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
       <h2 className="profile-card__title">{isInitialRegistration ? '初期登録' : 'プロフィール'}</h2>
       {/* 初期の説明文や事前警告は表示せず、登録時のみバリデーションエラーを表示します */}
       <form onSubmit={handleSubmit} className="profile-card__form">
+        <div className="profile-card__section-label required-label">プロフィール写真</div>
         <div className="profile-card__photos">
           {(profile.photoUrls || []).map((photo, index) => (
             <div key={index} className="profile-card__photo-slot">
@@ -151,13 +150,13 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
         <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
 
         <div className="profile-card__field">
-          <label htmlFor="displayName">Name</label>
+          <label htmlFor="displayName" className="required-label">名前</label>
           <input
             id="displayName"
             name="displayName"
             value={profile.displayName}
             onChange={handleChange}
-            placeholder="Name"
+            placeholder="名前"
             maxLength={PROFILE_MAX_LENGTHS.displayName}
           />
           {errors.displayName && <div className="profile-card__error">{errors.displayName}</div>}
@@ -177,7 +176,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
         </div>
 
         <div className="profile-card__field">
-          <label htmlFor="experienceYears">経験年数</label>
+          <label htmlFor="experienceYears" className="required-label">経験年数</label>
           <select id="experienceYears" name="experienceYears" value={profile.experienceYears} onChange={handleChange}>
             <option value="0">選択してください</option>
             {yearOptions.map((year) => (
@@ -185,16 +184,6 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
             ))}
           </select>
           {errors.experienceYears && <div className="profile-card__error">{errors.experienceYears}</div>}
-        </div>
-
-        <div className="profile-card__field">
-          <label htmlFor="gender">性別</label>
-          <select id="gender" name="gender" value={profile.gender} onChange={handleChange}>
-            <option value="">選択してください</option>
-            <option value="男性">男性</option>
-            <option value="女性">女性</option>
-            <option value="その他">その他</option>
-          </select>
         </div>
 
         <div className="profile-card__field">

@@ -29,42 +29,50 @@ html,
 body,
 #root {
   min-height: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 body {
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
 }
 
-/* タブレットまではブラウザ版のスクロールなし */
+/* タブレット以降も縦スクロールを許可して背景切れを防ぐ */
 @media (max-width: 1024px) {
   html,
   body,
   #root {
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 }
 
-/* モバイルではスクロールあり */
+/* モバイルでも同じく縦スクロールを維持 */
 @media (max-width: 768px) {
   html,
   body,
   #root {
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   body {
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 }
 
 .app-shell {
   max-width: 1080px;
+  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0 auto;
   padding: 16px 16px 120px;
 }
@@ -237,14 +245,16 @@ body {
 
 .app-shell--likes {
   min-height: 100vh;
-  height: 100vh;
+  min-height: 100dvh;
+  height: auto;
   overflow-y: auto;
   padding-bottom: calc(120px + env(safe-area-inset-bottom));
 }
 
 .app-shell--chat {
   min-height: 100vh;
-  height: 100vh;
+  min-height: 100dvh;
+  height: auto;
   overflow-y: auto;
   overflow-x: hidden;
   padding-bottom: calc(120px + env(safe-area-inset-bottom));
@@ -254,7 +264,8 @@ body {
   max-width: 100%;
   padding: 16px 16px 0;
   min-height: 100vh;
-  height: 100vh;
+  min-height: 100dvh;
+  height: auto;
   overflow: hidden;
   background: #f8fafc;
   display: flex;
@@ -275,7 +286,8 @@ body {
 
 .app-shell--settings {
   min-height: 100vh;
-  height: 100vh;
+  min-height: 100dvh;
+  height: auto;
   overflow-y: auto;
   overflow-x: hidden;
   padding-bottom: calc(120px + env(safe-area-inset-bottom));
@@ -740,11 +752,35 @@ button.small-button {
 
 .entrance-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 16px;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
   background: #ffffff;
+}
+
+.registration-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 16px calc(120px + env(safe-area-inset-bottom));
+}
+
+.registration-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.registration-header h1 {
+  margin: 0;
+}
+
+.registration-header p {
+  margin: 8px 0 0;
+  color: #475569;
 }
 
 .entrance-card {
@@ -2805,6 +2841,13 @@ button.superlike {
   letter-spacing: -0.02em;
 }
 
+.profile-card__section-label {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: #1f2937;
+  font-size: var(--font-size-sm);
+}
+
 .profile-card__photos {
   display: flex;
   gap: 8px;
@@ -2870,6 +2913,13 @@ button.superlike {
   font-weight: 700;
   color: #1f2937;
   font-size: var(--font-size-sm);
+}
+
+.required-label::after {
+  content: '*';
+  color: #dc2626;
+  margin-left: 4px;
+  font-weight: 800;
 }
 
 .profile-card__field input,
@@ -2950,7 +3000,8 @@ button.small-button.active-tag {
 .app-shell--users {
   max-width: 1080px;
   min-height: 100vh;
-  height: 100vh;
+  min-height: 100dvh;
+  height: auto;
   overflow: hidden;
   padding: 16px 16px 120px;
 }

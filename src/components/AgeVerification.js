@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 
 /**
- * @param {{ onConfirm: (age:number) => void, onBack?: () => void }} props
+ * @param {{ onConfirm: (age:number) => void }} props
  */
-function AgeVerification({ onConfirm, onBack }) {
+function AgeVerification({ onConfirm }) {
   const [age, setAge] = useState('');
   const [error, setError] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -35,7 +35,7 @@ function AgeVerification({ onConfirm, onBack }) {
         <h1>年齢確認</h1>
         <p>18歳以上のみ登録できます。年齢を入力して次へ進んでください。</p>
         <form onSubmit={handleSubmit} className="field age-verification-form">
-          <label htmlFor="age">年齢</label>
+          <label htmlFor="age" className="required-label">年齢</label>
           <input
             id="age"
             type="number"
@@ -49,11 +49,6 @@ function AgeVerification({ onConfirm, onBack }) {
             確認して次へ
           </button>
         </form>
-        {onBack && (
-          <button type="button" className="secondary-button" onClick={onBack} style={{ marginTop: 8, width: '100%' }}>
-            戻る
-          </button>
-        )}
       </div>
       {showConfirmModal && (
         <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
