@@ -893,11 +893,6 @@ function App() {
             <img src="/vendor-logo.svg" alt="Vendor Logo" className="tinder-logo" />
           </div>
           <div className="header-actions">
-            {selectedTab === 'users' && (
-              <button type="button" className="icon-button icon-button--search" aria-label="検索">
-                <img src="/images/search.png" alt="" className="icon-button__image" />
-              </button>
-            )}
             <button type="button" className="icon-button icon-button--bell" aria-label="通知" onClick={handleNotificationClick} ref={notificationButtonRef}>
               <img src="/images/bell.png" alt="" className="icon-button__image" />
               {notifications.filter(n => !n.read).length > 0 && (
