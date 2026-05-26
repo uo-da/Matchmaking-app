@@ -515,12 +515,12 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
                     <button
                       type="button"
                       className="deck-card__profile-btn"
-                      aria-label="プロフィールを見る"
+                      aria-label="プロフィール詳細を見る"
                       onClick={(e) => { e.stopPropagation(); setModalUser(currentUserCard); }}
                       onPointerDown={(e) => { e.stopPropagation(); }}
-                      style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}
                     >
-                      👤
+                      <span aria-hidden="true">👤</span>
+                      <span>プロフィール詳細</span>
                     </button>
                   </div>
                 </div>

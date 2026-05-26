@@ -33,8 +33,9 @@ function AgeVerification({ onConfirm, onBack }) {
             id="age"
             type="number"
             value={age}
-            onChange={(event) => setAge(event.target.value)}
+            onChange={(event) => setAge(event.target.value.slice(0, 3))}
             placeholder="年齢を入力"
+            max="120"
           />
           {error && <div className="badge badge--error">{error}</div>}
           <button type="submit" className="entrance-card__action">

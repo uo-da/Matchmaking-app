@@ -22,8 +22,9 @@ function UserList({ currentUser, users, filter, onFilterChange, onLike, onSuperL
           <input
             id="stackTag"
             value={filter.stackTag}
-            onChange={(event) => handleFilterChange('stackTag', event.target.value)}
+            onChange={(event) => handleFilterChange('stackTag', event.target.value.slice(0, 60))}
             placeholder="React, Node.js, Python"
+            maxLength={60}
           />
         </div>
         <div className="field">

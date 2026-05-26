@@ -120,6 +120,8 @@ function isNotFoundError(error) {
 /**
  * @param {{ matchId: string, currentUser: Object, onSend: (matchId: string, text:string) => void, onBack?: () => void }} props
  */
+const CHAT_MESSAGE_MAX_LENGTH = 300;
+
 function MatchChat({ matchId, currentUser, onSend, onBack }) {
   const [text, setText] = useState('');
   const [messages, setMessages] = useState([]);
@@ -743,9 +745,10 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
           <input
             type="text"
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => setText(event.target.value.slice(0, CHAT_MESSAGE_MAX_LENGTH))}
             placeholder="メッセージ"
             className="chat-room__input"
+            maxLength={CHAT_MESSAGE_MAX_LENGTH}
           />
           <button type="submit" className="chat-room__send" aria-label="送信">
             <svg
