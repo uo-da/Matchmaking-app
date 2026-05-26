@@ -167,7 +167,8 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
       try {
         const loaded = await chatService.getMessages(currentUser.id, matchId);
         setMessages(dedupeMessages(loaded));
-        await chatService.markMessagesAsRead(currentUser.id, matchId);
+        const readUpdated = await chatService.markMessagesAsRead(currentUser.id, matchId);
+        setMessages(dedupeMessages(readUpdated));
       } catch (error) {
         console.error('Failed to load messages:', error);
         if (isNotFoundError(error)) {
@@ -184,6 +185,13 @@ function MatchChat({ matchId, currentUser, onSend, onBack }) {
       }
       if (event.type === 'message') {
         setMessages((prev) => (prev.some((item) => isSameMessage(item, event)) ? prev : [...prev, event]));
+        if (event.receiverId === currentUser.id) {
+          chatService.markMessagesAsRead(currentUser.id, matchId)
+            .then((loaded) => setMessages(dedupeMessages(loaded)))
+            .catch((error) => {
+              console.error('Failed to mark messages as read:', error);
+            });
+        }
         return;
       }
       if (event.type === 'read') {
