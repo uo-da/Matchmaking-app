@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
+import { EXPERIENCE_MAX_YEARS, normalizeExperienceYears } from '../utils/experience';
 
 const popularTags = ['Python', 'Java', 'Go', 'JavaScript', 'TypeScript', 'AWS', 'Docker', 'Kubernetes'];
-const yearOptions = Array.from({ length: 20 }, (_, index) => index + 1);
+const yearOptions = Array.from({ length: EXPERIENCE_MAX_YEARS }, (_, index) => index + 1);
 
 /**
  * @param {{ user: Object, onSave: (profile: Object) => void }} props
@@ -13,16 +14,16 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
     stackTags: (user.stackTags || []).join(', '),
     experienceYears: user.experienceYears || 0,
     hobbies: user.hobbies || '',
-    photoUrls: user.photoUrls || []
+    photoUrls: user.photoUrls || [],
+    gender: user.gender || ''
   });
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
-
-  const photos = Array.from({ length: 3 }, (_, index) => profile.photoUrls[index] || null);
+  const MAX_PHOTOS = 6;
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    const normalizedValue = name === 'experienceYears' ? Math.max(0, Number(value) || 0) : value;
+    const normalizedValue = name === 'experienceYears' ? normalizeExperienceYears(value) : value;
     setProfile((prev) => ({ ...prev, [name]: normalizedValue }));
   };
 
@@ -38,7 +39,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
   };
 
   const handleAddPhoto = () => {
-    if (profile.photoUrls.length >= 3) {
+    if ((profile.photoUrls || []).length >= MAX_PHOTOS) {
       return;
     }
     fileInputRef.current?.click();
@@ -53,7 +54,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
     reader.onload = () => {
       setProfile((prev) => ({
         ...prev,
-        photoUrls: [...(prev.photoUrls || []), reader.result].slice(0, 3)
+        photoUrls: [...(prev.photoUrls || []), reader.result].slice(0, MAX_PHOTOS)
       }));
     };
     reader.readAsDataURL(file);
@@ -70,14 +71,13 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
 
   const validateProfile = () => {
     const newErrors = {};
-    const tags = profile.stackTags.split(',').map((tag) => tag.trim()).filter(Boolean);
-    if (isInitialRegistration && (!profile.photoUrls || profile.photoUrls.length === 0)) {
-      newErrors.photos = 'プロフィール画像を最低1枚以上登録してください。';
+    if (!profile.photoUrls || profile.photoUrls.length === 0) {
+      newErrors.photos = 'まずは最低1枚の画像を登録してください。';
     }
-    if (tags.length === 0) {
-      newErrors.stackTags = '技術スタックを少なくとも1つ入力してください。';
+    if (!profile.displayName || !profile.displayName.trim()) {
+      newErrors.displayName = '名前を入力してください。';
     }
-    if (!profile.experienceYears || profile.experienceYears <= 0) {
+    if (!profile.experienceYears || Number(profile.experienceYears) <= 0) {
       newErrors.experienceYears = '経験年数を入力してください。';
     }
     setErrors(newErrors);
@@ -93,53 +93,49 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
       displayName: profile.displayName.trim() || user.displayName,
       bio: profile.bio.trim(),
       stackTags: (profile.stackTags || '').split(',').map((tag) => tag.trim()).filter(Boolean),
-      experienceYears: Number(profile.experienceYears) || 0,
+      experienceYears: normalizeExperienceYears(profile.experienceYears),
       hobbies: profile.hobbies.trim(),
-      photoUrls: profile.photoUrls
+      photoUrls: profile.photoUrls,
+      gender: profile.gender
     });
   };
 
   return (
     <div className="profile-card">
       <h2 className="profile-card__title">{isInitialRegistration ? '初期登録' : 'プロフィール'}</h2>
-      {isInitialRegistration && (
-        <p className="profile-card__subtitle">まずは最低1枚以上のプロフィール画像を登録し、経験年数と技術タグを入力してください。</p>
-      )}
+      {/* 初期の説明文や事前警告は表示せず、登録時のみバリデーションエラーを表示します */}
       <form onSubmit={handleSubmit} className="profile-card__form">
         <div className="profile-card__photos">
-          {photos.map((photo, index) => (
+          {(profile.photoUrls || []).map((photo, index) => (
             <div key={index} className="profile-card__photo-slot">
-              {photo ? (
-                <>
-                  <img
-                    className="profile-card__photo"
-                    src={photo}
-                    alt={`プロフィール写真 ${index + 1}`}
-                    onError={(event) => {
-                      event.currentTarget.src = 'https://via.placeholder.com/120';
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="profile-card__remove-photo"
-                    onClick={() => handleRemovePhoto(index)}
-                    aria-label="写真を削除"
-                  >
-                    ×
-                  </button>
-                </>
-              ) : (
-                <button type="button" className="profile-card__add-photo" onClick={handleAddPhoto}>
-                  ＋
-                </button>
-              )}
+              <img
+                className="profile-card__photo"
+                src={photo}
+                alt={`プロフィール写真 ${index + 1}`}
+                onError={(event) => {
+                  event.currentTarget.src = 'https://via.placeholder.com/120';
+                }}
+              />
+              <button
+                type="button"
+                className="profile-card__remove-photo"
+                onClick={() => handleRemovePhoto(index)}
+                aria-label="写真を削除"
+              >
+                ×
+              </button>
             </div>
           ))}
+
+          {(profile.photoUrls || []).length < MAX_PHOTOS && (
+            <div className="profile-card__photo-slot">
+              <button type="button" className="profile-card__add-photo" onClick={handleAddPhoto}>
+                ＋
+              </button>
+            </div>
+          )}
         </div>
 
-        <p className="profile-card__photo-note">
-          {isInitialRegistration ? 'まずは最低1枚の画像を登録してください。' : '最低2枚の画像を登録してください。'}
-        </p>
         {errors.photos && <div className="profile-card__error">{errors.photos}</div>}
 
         <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
@@ -147,6 +143,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
         <div className="profile-card__field">
           <label htmlFor="displayName">Name</label>
           <input id="displayName" name="displayName" value={profile.displayName} onChange={handleChange} placeholder="Name" />
+          {errors.displayName && <div className="profile-card__error">{errors.displayName}</div>}
         </div>
 
         <div className="profile-card__field">
@@ -159,13 +156,20 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
           <select id="experienceYears" name="experienceYears" value={profile.experienceYears} onChange={handleChange}>
             <option value="0">選択してください</option>
             {yearOptions.map((year) => (
-              <option key={year} value={year}>{year}年</option>
+              <option key={year} value={year}>{year === EXPERIENCE_MAX_YEARS ? `${year}年以上` : `${year}年`}</option>
             ))}
           </select>
-          {isInitialRegistration && !profile.experienceYears && (
-            <div className="profile-card__warning">経験年数を入力してください。</div>
-          )}
           {errors.experienceYears && <div className="profile-card__error">{errors.experienceYears}</div>}
+        </div>
+
+        <div className="profile-card__field">
+          <label htmlFor="gender">性別</label>
+          <select id="gender" name="gender" value={profile.gender} onChange={handleChange}>
+            <option value="">選択してください</option>
+            <option value="男性">男性</option>
+            <option value="女性">女性</option>
+            <option value="その他">その他</option>
+          </select>
         </div>
 
         <div className="profile-card__field">
@@ -189,9 +193,6 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
             onChange={handleChange}
             placeholder="カンマ区切りでタグを登録(例) Java, AWS,"
           />
-          {isInitialRegistration && !profile.stackTags.trim() && (
-            <div className="profile-card__warning">技術タグを少なくとも1つ入力してください。</div>
-          )}
           {errors.stackTags && <div className="profile-card__error">{errors.stackTags}</div>}
         </div>
 

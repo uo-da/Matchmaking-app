@@ -9,7 +9,6 @@ describe('matchUtils', () => {
       hobbies: 'music',
       age: 28,
       gender: '男性',
-      scoutNg: false,
       stackTags: ['React', 'Node.js'],
       experienceYears: 3,
       matches: ['user-2']
@@ -21,7 +20,6 @@ describe('matchUtils', () => {
       hobbies: 'movie',
       age: 32,
       gender: '女性',
-      scoutNg: false,
       stackTags: ['Python'],
       experienceYears: 5,
       matches: ['user-1']
@@ -33,7 +31,6 @@ describe('matchUtils', () => {
       hobbies: '',
       age: 24,
       gender: '女性',
-      scoutNg: true,
       stackTags: ['React'],
       experienceYears: 1,
       matches: []
@@ -44,7 +41,6 @@ describe('matchUtils', () => {
       bio: 'No gender user',
       hobbies: '',
       age: 45,
-      scoutNg: false,
       stackTags: [],
       experienceYears: 10,
       matches: null
@@ -56,13 +52,12 @@ describe('matchUtils', () => {
     expect(result).toEqual([users[0]]);
   });
 
-  test('applies age, gender, scout and multiple stack filters', () => {
+  test('applies age, gender and multiple stack filters', () => {
     const result = filterUsersByCriteria(users, {
       stackTags: ['React', 'Python'],
       minAge: 25,
       maxAge: 35,
-      genders: ['女性'],
-      excludeScoutNg: true
+      genders: ['女性']
     });
     expect(result).toEqual([users[1]]);
   });
@@ -73,12 +68,12 @@ describe('matchUtils', () => {
   });
 
   test('does not apply max age upper bound when maxAge is 80', () => {
-    const result = filterUsersByCriteria(users, { maxAge: 80, excludeScoutNg: false });
+    const result = filterUsersByCriteria(users, { maxAge: 80 });
     expect(result).toContainEqual(users[3]);
   });
 
   test('ignores gender filter when target user has no gender', () => {
-    const result = filterUsersByCriteria(users, { genders: ['女性'], excludeScoutNg: false });
+    const result = filterUsersByCriteria(users, { genders: ['女性'] });
     expect(result).toContainEqual(users[3]);
   });
 

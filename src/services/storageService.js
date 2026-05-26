@@ -32,7 +32,6 @@ const sampleUsers = [
     bio: 'ReactとNode.jsでプロダクト開発をしています。',
     age: 28,
     gender: '男性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 5,
     stackTags: ['React', 'Node.js', 'TypeScript'],
@@ -57,7 +56,6 @@ const sampleUsers = [
     bio: 'インフラとインシデント対応が得意です。',
     age: 32,
     gender: '女性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 8,
     stackTags: ['AWS', 'Docker', 'Kubernetes'],
@@ -79,7 +77,6 @@ const sampleUsers = [
     bio: 'フロントエンドのUX改善が好きです。',
     age: 26,
     gender: '男性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 4,
     stackTags: ['React', 'Vue', 'CSS'],
@@ -99,7 +96,6 @@ const sampleUsers = [
     bio: 'GoとKubernetesの設計でパフォーマンスにこだわります。',
     age: 30,
     gender: '女性',
-    scoutNg: true,
     ageVerified: true,
     experienceYears: 7,
     stackTags: ['Go', 'Kubernetes', 'Terraform'],
@@ -122,7 +118,6 @@ const sampleUsers = [
     bio: 'UI/UX改善とデザインシステムが得意です。',
     age: 27,
     gender: '女性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 5,
     stackTags: ['Figma', 'React', 'CSS'],
@@ -146,7 +141,6 @@ const sampleUsers = [
     bio: 'モバイルアプリとAndroidネイティブが好きです。',
     age: 29,
     gender: '女性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 6,
     stackTags: ['Kotlin', 'Android', 'Jetpack'],
@@ -167,7 +161,6 @@ const sampleUsers = [
     bio: 'RustとWebAssemblyで高速なWeb体験を作ります。',
     age: 31,
     gender: '男性',
-    scoutNg: true,
     ageVerified: true,
     experienceYears: 7,
     stackTags: ['Rust', 'WebAssembly', 'React'],
@@ -189,7 +182,6 @@ const sampleUsers = [
     bio: '機械学習とデータパイプラインの設計を担当しています。',
     age: 33,
     gender: '男性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 9,
     stackTags: ['Python', 'TensorFlow', 'Airflow'],
@@ -211,7 +203,6 @@ const sampleUsers = [
     bio: 'チャット機能の検証用アカウントです。',
     age: 28,
     gender: '男性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 5,
     stackTags: ['React', 'Node.js', 'TypeScript'],
@@ -232,7 +223,6 @@ const sampleUsers = [
     bio: 'wasabi49の検証用ダミーアカウントです。',
     age: 27,
     gender: '女性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 4,
     stackTags: ['React', 'Figma'],
@@ -254,7 +244,6 @@ const sampleUsers = [
     bio: 'wasabi49の検証用ダミーアカウントです。',
     age: 30,
     gender: '男性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 6,
     stackTags: ['Python', 'AWS'],
@@ -275,7 +264,6 @@ const sampleUsers = [
     bio: 'wasabi49の検証用ダミーアカウントです。',
     age: 25,
     gender: '女性',
-    scoutNg: false,
     ageVerified: true,
     experienceYears: 3,
     stackTags: ['Go', 'Kubernetes'],
@@ -409,21 +397,38 @@ const storageService = {
     return null;
   },
 
-  saveCurrentSession(user) {
-    if (isLocalMode) {
-      window.localStorage.setItem('matchmaking_session', JSON.stringify(user));
+ saveCurrentSession(user) {
+  if (isLocalMode) {
+    try {
+      const minimal = {
+        id: user?.id,
+        githubUsername: user?.githubUsername,
+        displayName: user?.displayName,
+        avatar: user?.avatar,
+        ageVerified: user?.ageVerified
+      };
+
+      window.localStorage.setItem('matchmaking_session', JSON.stringify(minimal));
+
       window.localStorage.setItem('currentUser', JSON.stringify(user));
+
       const users = this.getUsers();
       const dedupedUsers = users.filter((item) => (
-        item.id !== user.id
-        && (!user.githubUsername || item.githubUsername !== user.githubUsername)
+        item.id !== user.id &&
+        (!user.githubUsername || item.githubUsername !== user.githubUsername)
       ));
+
       const nextUsers = [...dedupedUsers, user];
       this.setUsers(nextUsers);
-      return user;
+
+    } catch (e) {
+      console.warn('Failed to save session to localStorage', e);
     }
+
     return user;
-  },
+  }
+  return user;
+},
 
   clearCurrentSession() {
     if (isLocalMode) {
@@ -532,7 +537,6 @@ const storageService = {
         bio: '',
         age: null,
         gender: '',
-        scoutNg: false,
         ageVerified: false,
         experienceYears: 0,
         stackTags: [],
@@ -558,7 +562,6 @@ const storageService = {
         bio: '',
         age: null,
         gender: '',
-        scoutNg: false,
         ageVerified: false,
         experienceYears: 0,
         stackTags: [],

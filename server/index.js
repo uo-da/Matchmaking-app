@@ -13,6 +13,8 @@ const WebSocket = require('ws');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const DB_FILE = path.join(__dirname, 'data', 'database.sqlite');
+const DEFAULT_JSON_LIMIT = '1mb';
+const EDITOR_JSON_LIMIT = '2mb';
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || 'your-github-client-id';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || 'your-github-client-secret';
@@ -60,6 +62,12 @@ const serializeUser = (row) => {
   if (!row) {
     return null;
   }
+  let photoUrls = [];
+  try {
+    photoUrls = JSON.parse(row.photoUrls || '[]');
+  } catch {
+    photoUrls = [];
+  }
   return {
     id: row.id,
     githubUsername: row.githubUsername,
@@ -74,6 +82,7 @@ const serializeUser = (row) => {
     superLikedUserIds: JSON.parse(row.superLikedUserIds || '[]'),
     nopedUserIds: JSON.parse(row.nopedUserIds || '[]'),
     matches: JSON.parse(row.matches || '[]'),
+    photoUrls: Array.isArray(photoUrls) ? photoUrls : [],
     avatar: row.avatar
   };
 };
@@ -259,8 +268,15 @@ const initDatabase = async () => {
     superLikedUserIds TEXT,
     nopedUserIds TEXT,
     matches TEXT,
+    photoUrls TEXT DEFAULT '[]',
     avatar TEXT
   )`);
+
+  const userColumns = await all('PRAGMA table_info(users)');
+  const userColumnNames = new Set(userColumns.map((column) => column.name));
+  if (!userColumnNames.has('photoUrls')) {
+    await run(`ALTER TABLE users ADD COLUMN photoUrls TEXT DEFAULT '[]'`);
+  }
 
   await run(`CREATE TABLE IF NOT EXISTS chat_messages (
     id TEXT PRIMARY KEY,
@@ -308,6 +324,7 @@ const initDatabase = async () => {
         superLikedUserIds: JSON.stringify([]),
         nopedUserIds: JSON.stringify([]),
         matches: JSON.stringify(['user-2']),
+        photoUrls: JSON.stringify([]),
         avatar: 'https://github.com/octocat.png'
       },
       {
@@ -324,6 +341,7 @@ const initDatabase = async () => {
         superLikedUserIds: JSON.stringify([]),
         nopedUserIds: JSON.stringify([]),
         matches: JSON.stringify(['user-1']),
+        photoUrls: JSON.stringify([]),
         avatar: 'https://github.com/mona.png'
       },
       {
@@ -340,12 +358,13 @@ const initDatabase = async () => {
         superLikedUserIds: JSON.stringify([]),
         nopedUserIds: JSON.stringify([]),
         matches: JSON.stringify([]),
+        photoUrls: JSON.stringify([]),
         avatar: 'https://github.com/ramen.png'
       }
     ];
 
-    const insert = `INSERT INTO users (id, githubUsername, displayName, bio, age, ageVerified, experienceYears, stackTags, hobbies, likedUserIds, superLikedUserIds, nopedUserIds, matches, avatar)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const insert = `INSERT INTO users (id, githubUsername, displayName, bio, age, ageVerified, experienceYears, stackTags, hobbies, likedUserIds, superLikedUserIds, nopedUserIds, matches, photoUrls, avatar)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     for (const user of initialUsers) {
       await run(insert, [
@@ -362,6 +381,7 @@ const initDatabase = async () => {
         user.superLikedUserIds,
         user.nopedUserIds,
         user.matches,
+        user.photoUrls,
         user.avatar
       ]);
     }
@@ -383,7 +403,7 @@ const getUserByGithub = async (githubUsername) => {
 };
 
 const saveUser = async (user) => {
-  await run(`UPDATE users SET displayName = ?, bio = ?, age = ?, ageVerified = ?, experienceYears = ?, stackTags = ?, hobbies = ?, likedUserIds = ?, superLikedUserIds = ?, nopedUserIds = ?, matches = ?, avatar = ? WHERE id = ?`, [
+  await run(`UPDATE users SET displayName = ?, bio = ?, age = ?, ageVerified = ?, experienceYears = ?, stackTags = ?, hobbies = ?, likedUserIds = ?, superLikedUserIds = ?, nopedUserIds = ?, matches = ?, photoUrls = ?, avatar = ? WHERE id = ?`, [
     user.displayName,
     user.bio,
     user.age,
@@ -395,6 +415,7 @@ const saveUser = async (user) => {
     JSON.stringify(normalizeArray(user.superLikedUserIds)),
     JSON.stringify(normalizeArray(user.nopedUserIds)),
     JSON.stringify(normalizeArray(user.matches)),
+    JSON.stringify(normalizeArray(user.photoUrls)),
     user.avatar,
     user.id
   ]);
@@ -478,8 +499,8 @@ const deleteUserAccount = async (userId) => {
 
 const createUser = async ({ githubUsername, displayName, avatar }) => {
   const id = `user-${Date.now()}`;
-  await run(`INSERT INTO users (id, githubUsername, displayName, bio, age, ageVerified, experienceYears, stackTags, hobbies, likedUserIds, superLikedUserIds, nopedUserIds, matches, avatar)
-    VALUES (?, ?, ?, '', NULL, 0, 0, '[]', '', '[]', '[]', '[]', '[]', ?)`, [
+  await run(`INSERT INTO users (id, githubUsername, displayName, bio, age, ageVerified, experienceYears, stackTags, hobbies, likedUserIds, superLikedUserIds, nopedUserIds, matches, photoUrls, avatar)
+    VALUES (?, ?, ?, '', NULL, 0, 0, '[]', '', '[]', '[]', '[]', '[]', '[]', ?)`, [
     id,
     githubUsername,
     displayName,
@@ -721,7 +742,8 @@ app.use((req, res, next) => {
   }
   return next();
 });
-app.use(express.json({ limit: '200kb' }));
+app.use('/api/chats', express.json({ limit: EDITOR_JSON_LIMIT }));
+app.use(express.json({ limit: DEFAULT_JSON_LIMIT }));
 app.use(cors({ origin: true, credentials: true }));
 app.use(session({
   secret: SESSION_SECRET,
@@ -862,6 +884,7 @@ app.put('/api/users/:id/profile', ensureAuthenticated, async (req, res) => {
     ...current,
     ...req.body,
     stackTags: normalizeArray(req.body.stackTags || current.stackTags),
+    photoUrls: normalizeArray(req.body.photoUrls || current.photoUrls).filter((url) => typeof url === 'string' && url.trim()),
     likedUserIds: normalizeArray(current.likedUserIds),
     superLikedUserIds: normalizeArray(current.superLikedUserIds),
     nopedUserIds: normalizeArray(current.nopedUserIds),
@@ -1077,6 +1100,26 @@ app.delete('/api/chats/:matchId/editor/files/:fileId', ensureAuthenticated, asyn
 
   broadcastMessage({ type: 'editor:file-deleted', matchKey: removed.matchKey, fileId: removed.id });
   res.json(removed);
+});
+
+app.use((error, req, res, next) => {
+  if (error?.type === 'entity.too.large') {
+    const requestLength = Number(req.headers['content-length'] || 0);
+    const limit = typeof error.limit === 'number' ? error.limit : null;
+    console.warn('[HTTP 413] request entity too large', {
+      method: req.method,
+      path: req.originalUrl,
+      contentLength: requestLength,
+      limit
+    });
+    return res.status(413).json({
+      error: 'Payload too large',
+      code: 'ENTITY_TOO_LARGE',
+      limit,
+      contentLength: requestLength
+    });
+  }
+  return next(error);
 });
 
 

@@ -1,7 +1,14 @@
 import React from 'react';
 import './NotificationList.css';
 
-function NotificationList({ notifications, users, onClose, onMarkAsRead }) {
+function NotificationList({ notifications, users, onClose, onMarkAsRead, onSelectNotification }) {
+  const visibleNotifications = notifications.filter((notification) => {
+    if (!notification.read) {
+      return true;
+    }
+    return notification.type !== 'superLike' && notification.type !== 'like';
+  });
+
   const getUserById = (userId) => {
     return users.find(user => user.id === userId);
   };
@@ -31,6 +38,9 @@ function NotificationList({ notifications, users, onClose, onMarkAsRead }) {
     if (!notification.read) {
       onMarkAsRead(notification.id);
     }
+    if (typeof onSelectNotification === 'function') {
+      onSelectNotification(notification);
+    }
   };
 
   return (
@@ -39,10 +49,10 @@ function NotificationList({ notifications, users, onClose, onMarkAsRead }) {
         <h2>通知</h2>
       </div>
       <div className="notification-content">
-        {notifications.length === 0 ? (
+        {visibleNotifications.length === 0 ? (
           <div className="no-notifications">新しい通知はありません</div>
         ) : (
-          notifications
+          visibleNotifications
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
             .map(notification => {
               const fromUser = getUserById(notification.fromUserId);

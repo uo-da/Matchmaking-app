@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import './ProfileView.css';
 import ProfileEditor from './ProfileEditor';
 import GitHubCalendar from './GitHubCalendar';
+import { formatExperienceYears } from '../utils/experience';
 
 /**
  * Read-only profile view with an edit (pen) button that toggles inline editor.
  * Pen icon is placed at same vertical level as the name on the right.
  */
-function ProfileView({ user, onSave }) {
+function ProfileView({ user, onSave, readOnly = false, title = 'マイプロフィール' }) {
   const [isEditing, setIsEditing] = useState(false);
 
   if (!user) return null;
@@ -16,16 +17,18 @@ function ProfileView({ user, onSave }) {
     <>
       {!isEditing ? (
         <div className="profile-card">
-          <h2 className="profile-card__title">マイプロフィール</h2>
+          <h2 className="profile-card__title">{title}</h2>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              {(user.photoUrls || []).slice(0, 3).map((p, i) => (
-                <img key={i} src={p || user.avatar} alt="photo" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8 }} onError={(e) => { e.currentTarget.src = user.avatar || 'https://via.placeholder.com/72'; }} />
-              ))}
-            </div>
-            <button aria-label="編集" className="icon-button" onClick={() => setIsEditing(true)} style={{ background: 'none', border: 'none', fontSize: 18 }}>
-              ✎
-            </button>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                {(user.photoUrls || []).slice(0, 3).map((p, i) => (
+                  <img key={i} src={p || user.avatar} alt="photo" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8 }} onError={(e) => { e.currentTarget.src = user.avatar || 'https://via.placeholder.com/72'; }} />
+                ))}
+              </div>
+              {!readOnly && (
+                <button aria-label="編集" className="icon-button" onClick={() => setIsEditing(true)} style={{ background: 'none', border: 'none', fontSize: 18 }}>
+                  ✎
+                </button>
+              )}
           </div>
 
           <div style={{ marginTop: 12 }}>
@@ -39,7 +42,7 @@ function ProfileView({ user, onSave }) {
 
             <div style={{ marginTop: 8 }}>
               <div style={{ fontSize: 12, color: '#333' }}>経験年数</div>
-              <div style={{ marginTop: 6 }}>{user.experienceYears || 0}</div>
+              <div style={{ marginTop: 6 }}>{formatExperienceYears(user.experienceYears)}</div>
             </div>
 
             <div style={{ marginTop: 12 }}>
@@ -68,10 +71,14 @@ function ProfileView({ user, onSave }) {
         </div>
       ) : (
         <div className="profile-view__editor">
-          <ProfileEditor user={user} isInitialRegistration={false} onSave={(profile) => { onSave(profile); setIsEditing(false); }} />
-          <div style={{ marginTop: 8, textAlign: 'center' }}>
-            <button type="button" className="secondary-button" onClick={() => setIsEditing(false)}>キャンセル</button>
-          </div>
+          {!readOnly && (
+            <>
+              <ProfileEditor user={user} isInitialRegistration={false} onSave={(profile) => { onSave(profile); setIsEditing(false); }} />
+              <div style={{ marginTop: 8, textAlign: 'center' }}>
+                <button type="button" className="secondary-button" onClick={() => setIsEditing(false)}>キャンセル</button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </>

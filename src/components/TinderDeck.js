@@ -1,6 +1,53 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import ProfileView from './ProfileView';
+import { formatExperienceYears } from '../utils/experience';
+
+const RECOMMENDED_MIN_SHARED_TAGS = 2;
+const RECOMMENDED_MIN_MATCH_RATIO = 0.6;
 
 const getGithubAvatarUrl = (githubUsername) => `https://github.com/${githubUsername}.png?size=320`;
+
+const normalizeStackTags = (tags) => {
+  if (!Array.isArray(tags)) {
+    return [];
+  }
+  const normalized = tags
+    .map((tag) => (typeof tag === 'string' ? tag.trim().toLowerCase() : ''))
+    .filter(Boolean);
+  return [...new Set(normalized)];
+};
+
+const getTagMatchInfo = (sourceTags, targetTags) => {
+  const source = normalizeStackTags(sourceTags);
+  const target = normalizeStackTags(targetTags);
+  if (source.length === 0 || target.length === 0) {
+    return {
+      sharedCount: 0,
+      matchRatio: 0,
+      sharedTags: []
+    };
+  }
+
+  const sourceSet = new Set(source);
+  const sharedTags = target.filter((tag) => sourceSet.has(tag));
+  const sharedCount = sharedTags.length;
+  const denominator = Math.min(source.length, target.length);
+  const matchRatio = denominator > 0 ? sharedCount / denominator : 0;
+
+  return {
+    sharedCount,
+    matchRatio,
+    sharedTags
+  };
+};
+
+const getCardDetailText = (bio, fallbackExperienceText) => {
+  const normalizedBio = typeof bio === 'string' ? bio.trim() : '';
+  if (!normalizedBio) {
+    return fallbackExperienceText;
+  }
+  return normalizedBio;
+};
 
 const getUserImageUrls = (user) => {
   if (!user) {
@@ -43,6 +90,8 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
   const [isExiting, setIsExiting] = useState(false);
   const [exitTransform, setExitTransform] = useState(null);
   const [dismissedUserIds, setDismissedUserIds] = useState(() => new Set());
+  const [recommendedModal, setRecommendedModal] = useState(null);
+  const [recommendedShownUserIds, setRecommendedShownUserIds] = useState(() => new Set());
   const [drag, setDrag] = useState({
     active: false,
     startX: 0,
@@ -77,6 +126,26 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
   const currentCardLikedYou = currentUserCard
     ? currentUserCard.likedUserIds.includes(currentUser.id) || currentUserCard.superLikedUserIds.includes(currentUser.id)
     : false;
+  
+    const [modalUser, setModalUser] = useState(null);
+
+  useEffect(() => {
+    if (!modalUser) return undefined;
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setModalUser(null);
+      }
+    };
+
+    window.addEventListener('keydown', onKey);
+
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modalUser]);
+
+  const currentTagMatchInfo = useMemo(() => (
+    getTagMatchInfo(currentUser?.stackTags, currentUserCard?.stackTags)
+  ), [currentUser?.stackTags, currentUserCard?.stackTags]);
 
   useEffect(() => {
     if (currentIndex >= filteredUsers.length) {
@@ -113,6 +182,46 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
   }, [currentUserCard?.id]);
 
   useEffect(() => {
+    if (!currentUserCard) {
+      setRecommendedModal(null);
+      return;
+    }
+    if (!canSuperLike) {
+      setRecommendedModal(null);
+      return;
+    }
+    if (recommendedShownUserIds.has(currentUserCard.id)) {
+      return;
+    }
+
+    const { sharedCount, matchRatio, sharedTags } = currentTagMatchInfo;
+    const isRecommended = (
+      sharedCount >= RECOMMENDED_MIN_SHARED_TAGS
+      && matchRatio >= RECOMMENDED_MIN_MATCH_RATIO
+    );
+    if (!isRecommended) {
+      return;
+    }
+
+    setRecommendedModal({
+      userId: currentUserCard.id,
+      sharedCount,
+      matchRatio,
+      sharedTags
+    });
+    setRecommendedShownUserIds((prev) => {
+      const next = new Set(prev);
+      next.add(currentUserCard.id);
+      return next;
+    });
+  }, [
+    currentUserCard,
+    canSuperLike,
+    currentTagMatchInfo,
+    recommendedShownUserIds
+  ]);
+
+  useEffect(() => {
     if (!filteredUsers.length) {
       return;
     }
@@ -144,6 +253,7 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
     if (!currentUserCard || isExiting) {
       return;
     }
+    setRecommendedModal(null);
     const swipedUserId = currentUserCard.id;
 
     const viewportWidth = window.innerWidth || 1200;
@@ -315,6 +425,7 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
     : drag.offsetX > 0
       ? 'deck-card__label deck-card__label--like'
       : 'deck-card__label deck-card__label--nope';
+  const sharedTagPreview = recommendedModal?.sharedTags?.slice(0, 4) || [];
 
   return (
     <div className="deck-shell deck-shell--vendor">
@@ -340,7 +451,10 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
                     <h3 className="deck-card__name">{nextUserCard.displayName}, {nextUserCard.age}</h3>
                   </div>
                   <p className="deck-card__detail">
-                    {nextUserCard.bio || `${nextUserCard.experienceYears}年の経験があります。`}
+                    {getCardDetailText(
+                      nextUserCard.bio,
+                      `${formatExperienceYears(nextUserCard.experienceYears)}の経験があります。`
+                    )}
                   </p>
                   <div className="deck-card__tags">
                     {nextUserCard.stackTags.slice(0, 3).map((tag) => (
@@ -386,12 +500,29 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
                   <h3 className="deck-card__name">{currentUserCard.displayName}, {currentUserCard.age}</h3>
                 </div>
                 <p className="deck-card__detail">
-                  {currentUserCard.bio || `${currentUserCard.experienceYears}年の経験があります。`}
+                  {getCardDetailText(
+                    currentUserCard.bio,
+                    `${formatExperienceYears(currentUserCard.experienceYears)}の経験があります。`
+                  )}
                 </p>
-                <div className="deck-card__tags">
-                  {currentUserCard.stackTags.slice(0, 3).map((tag) => (
-                    <span key={tag} className="deck-card__tag">{tag}</span>
-                  ))}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div className="deck-card__tags">
+                    {currentUserCard.stackTags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="deck-card__tag">{tag}</span>
+                    ))}
+                  </div>
+                  <div style={{ marginLeft: 12 }}>
+                    <button
+                      type="button"
+                      className="deck-card__profile-btn"
+                      aria-label="プロフィールを見る"
+                      onClick={(e) => { e.stopPropagation(); setModalUser(currentUserCard); }}
+                      onPointerDown={(e) => { e.stopPropagation(); }}
+                      style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}
+                    >
+                      👤
+                    </button>
+                  </div>
                 </div>
                 {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
               </div>
@@ -420,10 +551,44 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
               ♥
             </button>
           </div>
+          {recommendedModal && recommendedModal.userId === currentUserCard.id && (
+            <div className="modal-overlay" onClick={() => setRecommendedModal(null)}>
+              <div className="recommend-modal" onClick={(event) => event.stopPropagation()}>
+                <p className="recommend-modal__badge">おすすめユーザー</p>
+                <h3 className="recommend-modal__title">技術タグの一致度が高いです</h3>
+                <p className="recommend-modal__subtitle">
+                  共通タグ {recommendedModal.sharedCount} 個 / 一致率 {Math.round(recommendedModal.matchRatio * 100)}%
+                </p>
+                {sharedTagPreview.length > 0 && (
+                  <div className="recommend-modal__tags">
+                    {sharedTagPreview.map((tag) => (
+                      <span key={tag} className="recommend-modal__tag">#{tag}</span>
+                    ))}
+                  </div>
+                )}
+                <button type="button" className="primary-button" onClick={() => executeSwipe('superlike')}>
+                  スーパーライクする
+                </button>
+                <button type="button" className="secondary-button" onClick={() => setRecommendedModal(null)}>
+                  あとで
+                </button>
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div className="empty-state">
           条件に合うカードはもうありません。設定を調整してみましょう。
+        </div>
+      )}
+      {modalUser && (
+        <div className="modal-overlay" onClick={() => setModalUser(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 8, maxWidth: 720, width: '90%', maxHeight: '90%', overflow: 'auto', padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" aria-label="閉じる" onClick={() => setModalUser(null)} style={{ background: 'none', border: 'none', fontSize: 20 }}>✕</button>
+            </div>
+            <ProfileView user={modalUser} readOnly title={`${modalUser.displayName}のプロフィール`} onSave={() => {}} />
+          </div>
         </div>
       )}
     </div>
