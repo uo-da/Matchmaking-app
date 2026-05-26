@@ -1020,6 +1020,7 @@ button.superlike {
   width: clamp(120px, 13vw, 182px);
   display: grid;
   gap: 8px;
+  position: relative;
 }
 
 .likes-thumb {
@@ -1034,6 +1035,7 @@ button.superlike {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   transition: transform 140ms ease, box-shadow 140ms ease;
   position: relative;
+  z-index: 1;
 }
 
 .likes-thumb:hover {
@@ -1046,50 +1048,15 @@ button.superlike {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  position: relative;
+  z-index: 2;
 }
 
-.likes-action {
+.likes-item__actions .deck-action-btn {
   width: 44px;
   height: 44px;
-  border: none;
-  border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
   box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
-}
-
-.likes-action:hover {
-  transform: translateY(-1px);
-  filter: brightness(0.98);
-}
-
-.likes-action:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-}
-
-.likes-action--nope {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.likes-action--like {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.likes-action--superlike {
-  background: #c7d2fe;
-  color: #3730a3;
-}
-
-.likes-action--active {
-  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.26), 0 8px 16px rgba(15, 23, 42, 0.12);
 }
 
 .likes-thumb--superlike {
@@ -1124,6 +1091,48 @@ button.superlike {
 
 .likes-thumb__superlike-badge span {
   transform: translateY(-2px);
+}
+
+.likes-action-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(94px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  min-width: 220px;
+  max-width: min(86vw, 420px);
+  padding: 11px 16px;
+  border-radius: 9999px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  line-height: 1.3;
+  text-align: center;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+  z-index: 120;
+  animation: likes-toast-enter 170ms ease-out;
+}
+
+.likes-action-toast--nope {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.likes-action-toast--superlike {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+}
+
+.likes-action-toast--like {
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+}
+
+@keyframes likes-toast-enter {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 .likes-empty {
@@ -3269,6 +3278,11 @@ button.small-button.active-tag {
   background: #ff4f4f;
 }
 
+.app-shell--likes .deck-action-btn--nope {
+  background: #ff4f4f;
+  color: #ffffff;
+}
+
 .app-shell--users .deck-action-btn--superlike {
   width: 84px;
   height: 84px;
@@ -3276,8 +3290,18 @@ button.small-button.active-tag {
   color: #f3ec3f;
 }
 
+.app-shell--likes .deck-action-btn--superlike {
+  background: #7b46e8;
+  color: #f3ec3f;
+}
+
 .app-shell--users .deck-action-btn--like {
   background: #f14e99;
+}
+
+.app-shell--likes .deck-action-btn--like {
+  background: #f14e99;
+  color: #ffffff;
 }
 
 .app-shell--users .deck-action-btn:hover,

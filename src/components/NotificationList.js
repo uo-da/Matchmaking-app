@@ -2,12 +2,7 @@ import React from 'react';
 import './NotificationList.css';
 
 function NotificationList({ notifications, users, onClose, onMarkAsRead, onSelectNotification }) {
-  const visibleNotifications = notifications.filter((notification) => {
-    if (!notification.read) {
-      return true;
-    }
-    return notification.type !== 'superLike' && notification.type !== 'like';
-  });
+  const visibleNotifications = notifications.filter((notification) => !notification.read);
 
   const getUserById = (userId) => {
     return users.find(user => user.id === userId);

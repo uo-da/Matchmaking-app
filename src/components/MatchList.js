@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getUserImageCandidates, loadNextImageCandidate } from '../utils/userImage';
 
 /**
@@ -11,14 +11,47 @@ import { getUserImageCandidates, loadNextImageCandidate } from '../utils/userIma
  * }} props
  */
 function MatchList({ currentUser, users, onSelectProfile, onNope, onLike }) {
+  const [actionFeedback, setActionFeedback] = useState(null);
+  const feedbackTimerRef = useRef(null);
+
+  const showActionFeedback = (message, type) => {
+    if (feedbackTimerRef.current) {
+      window.clearTimeout(feedbackTimerRef.current);
+    }
+    setActionFeedback({ message, type });
+    feedbackTimerRef.current = window.setTimeout(() => {
+      setActionFeedback(null);
+      feedbackTimerRef.current = null;
+    }, 1800);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) {
+        window.clearTimeout(feedbackTimerRef.current);
+      }
+    };
+  }, []);
+
+  const currentReactedUserIds = useMemo(() => {
+    return new Set([
+      ...(currentUser.likedUserIds || []),
+      ...(currentUser.superLikedUserIds || []),
+      ...(currentUser.nopedUserIds || [])
+    ]);
+  }, [currentUser.likedUserIds, currentUser.superLikedUserIds, currentUser.nopedUserIds]);
+
   const likedByUsers = useMemo(() => {
     return users.filter((user) => {
       if (user.id === currentUser.id) {
         return false;
       }
+      if (currentReactedUserIds.has(user.id)) {
+        return false;
+      }
       return user.likedUserIds.includes(currentUser.id) || user.superLikedUserIds.includes(currentUser.id);
     });
-  }, [users, currentUser.id]);
+  }, [users, currentUser.id, currentReactedUserIds]);
 
   const isSuperLikedByUser = (user) => {
     return user.superLikedUserIds.includes(currentUser.id);
@@ -38,14 +71,6 @@ function MatchList({ currentUser, users, onSelectProfile, onNope, onLike }) {
     });
   }, [users, currentUser.id, currentUser.likedUserIds, currentUser.superLikedUserIds]);
 
-  const currentLikedUserIds = useMemo(() => {
-    return new Set([...(currentUser.likedUserIds || []), ...(currentUser.superLikedUserIds || [])]);
-  }, [currentUser.likedUserIds, currentUser.superLikedUserIds]);
-
-  const currentNopedUserIds = useMemo(() => {
-    return new Set(currentUser.nopedUserIds || []);
-  }, [currentUser.nopedUserIds]);
-
   return (
     <div className="likes-screen">
       <section className="likes-section">
@@ -58,15 +83,11 @@ function MatchList({ currentUser, users, onSelectProfile, onNope, onLike }) {
             </div>
           ) : (
             likedByUsers.map((user) => {
-              const isLikedByMe = currentLikedUserIds.has(user.id);
-              const isSuperLikedByMe = (currentUser.superLikedUserIds || []).includes(user.id);
-              const isNopedByMe = currentNopedUserIds.has(user.id);
-
               return (
                 <div key={`liked-by-${user.id}`} className="likes-item">
                   <button
                     type="button"
-                    className={`likes-thumb ${isSuperLikeFromUser(user) ? 'likes-thumb--superlike' : ''}`}
+                    className={`likes-thumb ${isSuperLikedByUser(user) ? 'likes-thumb--superlike' : ''}`}
                     title={user.displayName}
                     onClick={() => onSelectProfile(user.id)}
                   >
@@ -86,30 +107,45 @@ function MatchList({ currentUser, users, onSelectProfile, onNope, onLike }) {
                   <div className="likes-item__actions" role="group" aria-label={`${user.displayName}への操作`}>
                     <button
                       type="button"
-                      className={`likes-action likes-action--nope ${isNopedByMe ? 'likes-action--active' : ''}`}
+                      className="deck-action-btn deck-action-btn--nope"
                       title="Nope"
                       aria-label={`${user.displayName}をNope`}
-                      onClick={() => onNope?.(user.id)}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        showActionFeedback(`${user.displayName}をNopeしました`, 'nope');
+                        onNope?.(user.id);
+                      }}
                     >
                       ✕
                     </button>
                     <button
                       type="button"
-                      className={`likes-action likes-action--like ${isLikedByMe && !isSuperLikedByMe ? 'likes-action--active' : ''}`}
-                      title="Like"
-                      aria-label={`${user.displayName}をLike`}
-                      onClick={() => onLike?.(user.id, false)}
+                      className="deck-action-btn deck-action-btn--superlike"
+                      title="Super Like"
+                      aria-label={`${user.displayName}をSuper Like`}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        showActionFeedback(`${user.displayName}へSuper Likeしました`, 'superlike');
+                        onLike?.(user.id, true);
+                      }}
                     >
-                      ♥
+                      ★
                     </button>
                     <button
                       type="button"
-                      className={`likes-action likes-action--superlike ${isSuperLikedByMe ? 'likes-action--active' : ''}`}
-                      title="Super Like"
-                      aria-label={`${user.displayName}をSuper Like`}
-                      onClick={() => onLike?.(user.id, true)}
+                      className="deck-action-btn deck-action-btn--like"
+                      title="Like"
+                      aria-label={`${user.displayName}をLike`}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        showActionFeedback(`${user.displayName}へLikeしました`, 'like');
+                        onLike?.(user.id, false);
+                      }}
                     >
-                      ★
+                      ♥
                     </button>
                   </div>
                 </div>
@@ -154,6 +190,15 @@ function MatchList({ currentUser, users, onSelectProfile, onNope, onLike }) {
           )}
         </div>
       </section>
+      {actionFeedback && (
+        <div
+          className={`likes-action-toast likes-action-toast--${actionFeedback.type}`}
+          role="status"
+          aria-live="polite"
+        >
+          {actionFeedback.message}
+        </div>
+      )}
     </div>
   );
 }

@@ -48,7 +48,7 @@ describe('NotificationList Component', () => {
 
     expect(screen.getByText('通知')).toBeInTheDocument();
     expect(screen.getByText('Other Userさんにスーパーライクされました。')).toBeInTheDocument();
-    expect(screen.getByText('Other Userさんとマッチしました。')).toBeInTheDocument();
+    expect(screen.queryByText('Other Userさんとマッチしました。')).not.toBeInTheDocument();
   });
 
   test('shows unread indicator for unread notifications', () => {
@@ -62,10 +62,27 @@ describe('NotificationList Component', () => {
     render(<NotificationList {...mockProps} />);
 
     fireEvent.click(screen.getByText('Other Userさんにスーパーライクされました。'));
-    fireEvent.click(screen.getByText('Other Userさんとマッチしました。'));
 
     expect(mockProps.onMarkAsRead).toHaveBeenCalledTimes(1);
     expect(mockProps.onMarkAsRead).toHaveBeenCalledWith('notification-1');
+  });
+
+  test('hides notification after it becomes read', () => {
+    const { rerender } = render(<NotificationList {...mockProps} />);
+    fireEvent.click(screen.getByText('Other Userさんにスーパーライクされました。'));
+
+    rerender(
+      <NotificationList
+        {...mockProps}
+        notifications={mockNotifications.map((notification) => (
+          notification.id === 'notification-1'
+            ? { ...notification, read: true }
+            : notification
+        ))}
+      />
+    );
+
+    expect(screen.getByText('新しい通知はありません')).toBeInTheDocument();
   });
 
   test('shows no notifications message when empty', () => {

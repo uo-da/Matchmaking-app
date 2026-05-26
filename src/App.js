@@ -892,6 +892,9 @@ function App() {
   // 通知ドロップダウンの外側クリックで閉じる
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (event.target instanceof Element && event.target.closest('.notification-dropdown')) {
+        return;
+      }
       if (notificationButtonRef.current && !notificationButtonRef.current.contains(event.target)) {
         setShowNotificationList(false);
       }
@@ -935,7 +938,8 @@ function App() {
     if (type === 'match' && fromUserId) {
       setShowNotificationList(false);
       setNotificationProfileUser(null);
-      if (!matchedUserIds.has(fromUserId)) {
+      const fromUserExists = allUsers.some((user) => user.id === fromUserId);
+      if (!fromUserExists) {
         setSelectedTab('matches');
         setSelectedMatchId(null);
         return;
