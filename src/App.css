@@ -931,6 +931,11 @@ button.superlike {
 .likes-section {
   display: grid;
   gap: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+  padding: 18px 18px 16px;
 }
 
 .likes-section__title {
@@ -1065,30 +1070,23 @@ button.superlike {
 }
 
 .new-match-strip {
-  display: flex;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.new-match-strip::-webkit-scrollbar {
-  display: none;
+  overflow: visible;
+  padding-bottom: 0;
 }
 
 .new-match-thumb {
   border: none;
   padding: 0;
-  width: clamp(104px, 15vw, 174px);
+  width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 14px;
   overflow: hidden;
   background: #e2e8f0;
   border: 1px solid #d5deea;
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-  flex: 0 0 auto;
   cursor: pointer;
   transition: transform 140ms ease, box-shadow 140ms ease;
 }
@@ -3107,6 +3105,12 @@ button.small-button.active-tag {
     border-radius: 10px;
   }
 
+  .new-match-strip > .new-match-thumb:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc((100% - 10px) / 2);
+  }
+
   .talk-list {
     gap: 10px;
   }
@@ -3147,6 +3151,12 @@ button.small-button.active-tag {
 
   .likes-grid {
     justify-content: center;
+  }
+
+  .likes-section {
+    border-radius: 16px;
+    padding: 14px 12px;
+    gap: 12px;
   }
 
   .likes-empty {
