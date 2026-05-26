@@ -44,11 +44,12 @@ describe('SettingsPanel', () => {
     let next = getNextFilter(onFilterChange);
     expect(next.stackTags).toEqual(['React', 'Node.js']);
     expect(next.stackTag).toBe('React');
-    expect(screen.getByRole('textbox', { name: '技術スタックタグ入力' })).toHaveValue('React, Node.js');
+    expect(screen.getByRole('button', { name: 'React を削除' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Node.js を削除' })).toBeInTheDocument();
 
     const input = screen.getByLabelText('技術スタックタグ入力');
     await user.type(input, 'Go, Rust, Go');
-    fireEvent.blur(input);
+    await user.click(screen.getByRole('button', { name: '技術スタックを追加' }));
 
     next = getNextFilter(onFilterChange);
     expect(next.stackTags).toEqual(expect.arrayContaining(['React', 'Go', 'Rust']));

@@ -17,7 +17,6 @@ import chatService from './services/chatService';
 import { filterUsersByCriteria } from './utils/matchUtils';
 import { prefetchUserImages } from './utils/userImage';
 
-const ENTRANCE_SEEN_KEY = 'matchmaking_entrance_seen';
 const VIEW_STATE_KEY = 'matchmaking_view_state';
 
 const isUnauthorizedError = (error) => (
@@ -125,8 +124,9 @@ function App() {
   const swipeQueueRef = useRef([]);
   const swipeQueueProcessingRef = useRef(false);
   const swipeQueueRetryTimerRef = useRef(null);
+  const processSwipeQueueRef = useRef(null);
 
-  const scheduleSwipeQueueRetry = (delayMs) => {
+  const scheduleSwipeQueueRetry = useCallback((delayMs) => {
     if (typeof window === 'undefined') {
       return;
     }
@@ -135,11 +135,11 @@ function App() {
     }
     swipeQueueRetryTimerRef.current = window.setTimeout(() => {
       swipeQueueRetryTimerRef.current = null;
-      processSwipeQueue();
+      processSwipeQueueRef.current?.();
     }, delayMs);
-  };
+  }, []);
 
-  const processSwipeQueue = async () => {
+  const processSwipeQueue = useCallback(async () => {
     if (swipeQueueProcessingRef.current) {
       return;
     }
@@ -180,7 +180,11 @@ function App() {
     } finally {
       swipeQueueProcessingRef.current = false;
     }
-  };
+  }, [scheduleSwipeQueueRetry]);
+
+  useEffect(() => {
+    processSwipeQueueRef.current = processSwipeQueue;
+  }, [processSwipeQueue]);
 
   const enqueueSwipeTask = (task) => {
     swipeQueueRef.current.push({
@@ -188,13 +192,12 @@ function App() {
       attempts: 0,
       nextRetryAt: 0
     });
-    processSwipeQueue();
+    processSwipeQueueRef.current?.();
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const handleOnline = () => {
-      processSwipeQueue();
+      processSwipeQueueRef.current?.();
     };
     if (typeof window !== 'undefined') {
       window.addEventListener('online', handleOnline);

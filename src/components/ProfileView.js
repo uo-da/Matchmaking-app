@@ -21,7 +21,7 @@ function ProfileView({ user, onSave, readOnly = false, title = 'マイプロフ�
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 {(user.photoUrls || []).slice(0, 3).map((p, i) => (
-                  <img key={i} src={p || user.avatar} alt="photo" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8 }} onError={(e) => { e.currentTarget.src = user.avatar || 'https://via.placeholder.com/72'; }} />
+                  <img key={i} src={p || user.avatar} alt={`${user.displayName || 'User'} ${i + 1}`} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8 }} onError={(e) => { e.currentTarget.src = user.avatar || 'https://via.placeholder.com/72'; }} />
                 ))}
               </div>
               {!readOnly && (
