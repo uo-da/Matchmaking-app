@@ -62,7 +62,7 @@ function MatchList({ currentUser, users, matchedUserIds, onSelectMatch }) {
                   }}
                 />
                 {isSuperLikedByUser(user) && (
-                  <div className="likes-thumb__superlike-badge">★</div>
+                  <div className="likes-thumb__superlike-badge"><span>★</span></div>
                 )}
               </button>
             ))
@@ -98,7 +98,7 @@ function MatchList({ currentUser, users, matchedUserIds, onSelectMatch }) {
                   }}
                 />
                 {isSuperLikeFromUser(user) && (
-                  <div className="likes-thumb__superlike-badge">★</div>
+                  <div className="likes-thumb__superlike-badge"><span>★</span></div>
                 )}
               </button>
             ))
