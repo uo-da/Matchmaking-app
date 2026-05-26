@@ -23,7 +23,6 @@ function GitHubCalendar({ username }) {
         <img
           src={src}
           alt="GitHub contributions"
-          style={{ display: 'block', height: 120 }}
           className={isLoading ? 'github-calendar__img github-calendar__img--hidden' : 'github-calendar__img'}
           onLoad={() => setIsLoading(false)}
           onError={() => setIsLoading(false)}

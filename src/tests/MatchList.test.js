@@ -30,27 +30,40 @@ describe('MatchList', () => {
     }
   ];
 
-  test('renders lists and allows selecting only matched users', async () => {
+  test('renders lists and allows opening profile for liked users', async () => {
     const user = userEvent.setup();
-    const onSelectMatch = jest.fn();
+    const onSelectProfile = jest.fn();
+    const onNope = jest.fn();
+    const onLike = jest.fn();
 
     render(
       <MatchList
         currentUser={currentUser}
         users={users}
-        matchedUserIds={new Set(['u2'])}
-        onSelectMatch={onSelectMatch}
+        onSelectProfile={onSelectProfile}
+        onNope={onNope}
+        onLike={onLike}
       />
     );
 
     const aliceButtons = screen.getAllByTitle('Alice');
     expect(aliceButtons.length).toBeGreaterThanOrEqual(1);
 
-    const bobButtons = screen.getAllByTitle('Bob（未マッチ）');
-    expect(bobButtons[0]).toBeDisabled();
+    const bobButtons = screen.getAllByTitle('Bob');
+    expect(bobButtons.length).toBeGreaterThanOrEqual(1);
+    expect(bobButtons[0]).toBeEnabled();
 
     await user.click(aliceButtons[0]);
-    expect(onSelectMatch).toHaveBeenCalledWith('u2');
+    await user.click(bobButtons[0]);
+    await user.click(screen.getByRole('button', { name: 'BobをNope' }));
+    await user.click(screen.getByRole('button', { name: 'BobをLike' }));
+    await user.click(screen.getByRole('button', { name: 'BobをSuper Like' }));
+
+    expect(onSelectProfile).toHaveBeenCalledWith('u2');
+    expect(onSelectProfile).toHaveBeenCalledWith('u3');
+    expect(onNope).toHaveBeenCalledWith('u3');
+    expect(onLike).toHaveBeenCalledWith('u3', false);
+    expect(onLike).toHaveBeenCalledWith('u3', true);
   });
 
   test('shows empty state when no liked users exist', () => {
@@ -58,8 +71,7 @@ describe('MatchList', () => {
       <MatchList
         currentUser={{ ...currentUser, likedUserIds: [], superLikedUserIds: [] }}
         users={[currentUser]}
-        matchedUserIds={new Set()}
-        onSelectMatch={jest.fn()}
+        onSelectProfile={jest.fn()}
       />
     );
 

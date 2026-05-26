@@ -838,6 +838,17 @@ function App() {
     setSelectedTab('chat');
   };
 
+  const handleSelectLikedUserProfile = (userId) => {
+    if (!userId) {
+      return;
+    }
+    const targetUser = allUsers.find((user) => user.id === userId);
+    if (!targetUser) {
+      return;
+    }
+    setNotificationProfileUser(targetUser);
+  };
+
   const handleSendMessage = async (matchId, text) => {
     if (!currentUser) {
       return null;
@@ -1038,8 +1049,9 @@ function App() {
           <MatchList
             currentUser={currentUser}
             users={allUsers}
-            matchedUserIds={matchedUserIds}
-            onSelectMatch={handleSelectMatch}
+            onSelectProfile={handleSelectLikedUserProfile}
+            onNope={handleNope}
+            onLike={handleLike}
           />
         )}
         {selectedTab === 'chat' && !selectedMatchId && (

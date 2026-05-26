@@ -101,7 +101,7 @@
 }
 
 .github-calendar__img--hidden {
-  opacity: 0;
+  display: none;
 }
 
 .github-calendar__skeleton {
