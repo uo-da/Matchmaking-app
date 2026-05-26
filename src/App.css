@@ -1010,6 +1010,10 @@ button.superlike {
   border: 2px solid white;
 }
 
+.likes-thumb__superlike-badge span {
+  transform: translateY(-2px);
+}
+
 .likes-empty {
   flex: 1 1 100%;
   max-width: 460px;
