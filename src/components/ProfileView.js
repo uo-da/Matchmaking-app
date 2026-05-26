@@ -16,7 +16,7 @@ function ProfileView({ user, onSave, readOnly = false, title = 'マイプロフ�
   return (
     <>
       {!isEditing ? (
-        <div className="profile-card">
+        <div className="profile-card profile-view__card">
           <h2 className="profile-card__title">{title}</h2>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -31,31 +31,31 @@ function ProfileView({ user, onSave, readOnly = false, title = 'マイプロフ�
               )}
           </div>
 
-          <div style={{ marginTop: 12 }}>
+          <div className="profile-view__content">
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 600 }}>{user.displayName} {user.age ? ` ${user.age}` : ''}</div>
-                <div style={{ color: '#999', fontSize: 12 }}>ID:{user.githubUsername || ''}</div>
+                <div className="profile-view__name">{user.displayName} {user.age ? ` ${user.age}` : ''}</div>
+                <div className="profile-view__id">ID:{user.githubUsername || ''}</div>
               </div>
             </div>
             <p className="profile-card__bio" style={{ marginTop: 8 }}>{user.bio}</p>
 
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 12, color: '#333' }}>経験年数</div>
+            <div className="profile-view__section">
+              <div className="profile-view__section-title">経験年数</div>
               <div style={{ marginTop: 6 }}>{formatExperienceYears(user.experienceYears)}</div>
             </div>
 
-            <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 12, color: '#333' }}>技術タグ</div>
+            <div className="profile-view__section">
+              <div className="profile-view__section-title">技術タグ</div>
               <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {(user.stackTags || []).map((t) => (
-                  <span key={t} style={{ padding: '6px 10px', borderRadius: 16, background: '#f5f5f5', fontSize: 12 }}>{t}</span>
+                  <span key={t} className="profile-view__tag">{t}</span>
                 ))}
               </div>
             </div>
 
-            <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 12, color: '#333' }}>趣味</div>
+            <div className="profile-view__section">
+              <div className="profile-view__section-title">趣味</div>
               <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {(user.hobbies || '').split(',').map((h) => h.trim()).filter(Boolean).map((h) => (
                   <span key={h} className="profile-card__hobby">{h}</span>
@@ -63,8 +63,8 @@ function ProfileView({ user, onSave, readOnly = false, title = 'マイプロフ�
               </div>
             </div>
 
-            <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 12, color: '#333', marginBottom: 6 }}>Contribution Graph</div>
+            <div className="profile-view__section">
+              <div className="profile-view__section-title" style={{ marginBottom: 6 }}>Contribution Graph</div>
               <GitHubCalendar username={user.githubUsername} />
             </div>
           </div>

@@ -4,6 +4,24 @@
   display: block;
 }
 
+.profile-view__card {
+  max-height: calc(100dvh - 340px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  font-size: var(--text-body);
+  line-height: 1.55;
+}
+
+.profile-view__card::-webkit-scrollbar {
+  width: 8px;
+}
+
+.profile-view__card::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+}
+
 .icon-button {
   cursor: pointer;
   border-radius: 6px;
@@ -34,7 +52,38 @@
   padding: 6px 10px;
   border-radius: 16px;
   background: #f5f5f5;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
+}
+
+.profile-view__content {
+  margin-top: 12px;
+}
+
+.profile-view__name {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+}
+
+.profile-view__id {
+  color: #64748b;
+  font-size: var(--font-size-sm);
+}
+
+.profile-view__section {
+  margin-top: 12px;
+}
+
+.profile-view__section-title {
+  font-size: var(--font-size-sm);
+  color: #334155;
+  font-weight: 600;
+}
+
+.profile-view__tag {
+  padding: 6px 10px;
+  border-radius: 16px;
+  background: #f5f5f5;
+  font-size: var(--font-size-sm);
 }
 
 .github-calendar__wrap {
@@ -42,9 +91,38 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.github-calendar__wrap img {
+.github-calendar__content {
+  position: relative;
+}
+
+.github-calendar__img {
   height: 140px;
   display: block;
+}
+
+.github-calendar__img--hidden {
+  opacity: 0;
+}
+
+.github-calendar__skeleton {
+  height: 140px;
+  border-radius: 10px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.github-calendar__skeleton-shimmer {
+  width: 40%;
+  height: 100%;
+  transform: translateX(-120%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.85) 50%, transparent 100%);
+  animation: githubCalendarShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes githubCalendarShimmer {
+  100% {
+    transform: translateX(300%);
+  }
 }
 
 .profile-view__editor {
@@ -84,5 +162,10 @@
 
 /* Responsive adjustments */
 @media (max-width: 480px) {
-  .github-calendar__wrap img { height: 100px; }
+  .profile-view__card {
+    max-height: calc(100dvh - 270px);
+  }
+
+  .github-calendar__img { height: 100px; }
+  .github-calendar__skeleton { height: 100px; }
 }

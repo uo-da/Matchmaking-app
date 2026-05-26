@@ -498,20 +498,7 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
               <div className="deck-card__info">
                 <div className="deck-card__meta">
                   <h3 className="deck-card__name">{currentUserCard.displayName}, {currentUserCard.age}</h3>
-                </div>
-                <p className="deck-card__detail">
-                  {getCardDetailText(
-                    currentUserCard.bio,
-                    `${formatExperienceYears(currentUserCard.experienceYears)}の経験があります。`
-                  )}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div className="deck-card__tags">
-                    {currentUserCard.stackTags.slice(0, 3).map((tag) => (
-                      <span key={tag} className="deck-card__tag">{tag}</span>
-                    ))}
-                  </div>
-                  <div style={{ marginLeft: 12 }}>
+                  <div className="deck-card__meta-actions">
                     <button
                       type="button"
                       className="deck-card__profile-btn"
@@ -520,11 +507,26 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
                       onPointerDown={(e) => { e.stopPropagation(); }}
                     >
                       <span aria-hidden="true">👤</span>
-                      <span>プロフィール詳細</span>
+                      <span>詳細</span>
                     </button>
                   </div>
                 </div>
-                {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
+                <p className="deck-card__detail">
+                  {getCardDetailText(
+                    currentUserCard.bio,
+                    `${formatExperienceYears(currentUserCard.experienceYears)}の経験があります。`
+                  )}
+                </p>
+                <div className="deck-card__footer-row">
+                  <div className="deck-card__tags">
+                    {currentUserCard.stackTags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="deck-card__tag">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="deck-card__badge-slot">
+                  {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
+                </div>
               </div>
             </div>
           </div>

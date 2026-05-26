@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { EXPERIENCE_MAX_YEARS, normalizeExperienceYears } from '../utils/experience';
 
 const popularTags = ['Python', 'Java', 'Go', 'JavaScript', 'TypeScript', 'AWS', 'Docker', 'Kubernetes'];
+const popularHobbies = ['散歩', '映画', '読書', 'ゲーム', '旅行', 'カフェ巡り', '音楽', '筋トレ'];
 const yearOptions = Array.from({ length: EXPERIENCE_MAX_YEARS }, (_, index) => index + 1);
 const PROFILE_MAX_LENGTHS = {
   displayName: 30,
@@ -10,6 +11,13 @@ const PROFILE_MAX_LENGTHS = {
   hobbies: 200
 };
 
+const parseCommaList = (value) => (
+  (value || '')
+    .split(/[,\n、]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+);
+
 /**
  * @param {{ user: Object, onSave: (profile: Object) => void }} props
  */
@@ -17,12 +25,14 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
   const [profile, setProfile] = useState({
     displayName: user.displayName || '',
     bio: user.bio || '',
-    stackTags: (user.stackTags || []).join(', '),
+    stackTags: Array.isArray(user.stackTags) ? user.stackTags.join(', ') : (user.stackTags || ''),
     experienceYears: user.experienceYears || 0,
     hobbies: user.hobbies || '',
     photoUrls: user.photoUrls || []
   });
   const [errors, setErrors] = useState({});
+  const [stackTagInput, setStackTagInput] = useState('');
+  const [hobbyInput, setHobbyInput] = useState('');
   const fileInputRef = useRef(null);
   const MAX_PHOTOS = 6;
 
@@ -36,15 +46,122 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
     setProfile((prev) => ({ ...prev, [name]: normalizedValue }));
   };
 
-  const handleTagClick = (tag) => {
-    const tags = (profile.stackTags || '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-    const nextTags = tags.includes(tag)
-      ? tags.filter((item) => item !== tag)
-      : [...tags, tag];
-    setProfile((prev) => ({ ...prev, stackTags: nextTags.join(', ') }));
+  const stackTagTokens = parseCommaList(profile.stackTags);
+
+  const hobbyTokens = parseCommaList(profile.hobbies);
+
+  const setStackTagsFromTokens = (tokens) => {
+    const uniqueTokens = [...new Set(tokens.map((item) => item.trim()).filter(Boolean))];
+    const nextStackTags = uniqueTokens.join(', ');
+    if (nextStackTags.length > PROFILE_MAX_LENGTHS.stackTags) {
+      setErrors((prev) => ({ ...prev, stackTags: `技術スタックは最大${PROFILE_MAX_LENGTHS.stackTags}文字までです。` }));
+      return false;
+    }
+    setProfile((prev) => ({ ...prev, stackTags: nextStackTags }));
+    setErrors((prev) => {
+      if (!prev.stackTags) {
+        return prev;
+      }
+      const { stackTags, ...rest } = prev;
+      return rest;
+    });
+    return true;
+  };
+
+  const setHobbiesFromTokens = (tokens) => {
+    const uniqueTokens = [...new Set(tokens.map((item) => item.trim()).filter(Boolean))];
+    const nextHobbies = uniqueTokens.join(', ');
+    if (nextHobbies.length > PROFILE_MAX_LENGTHS.hobbies) {
+      setErrors((prev) => ({ ...prev, hobbies: `趣味は最大${PROFILE_MAX_LENGTHS.hobbies}文字までです。` }));
+      return false;
+    }
+    setProfile((prev) => ({ ...prev, hobbies: nextHobbies }));
+    setErrors((prev) => {
+      if (!prev.hobbies) {
+        return prev;
+      }
+      const { hobbies, ...rest } = prev;
+      return rest;
+    });
+    return true;
+  };
+
+  const addHobbyToken = (rawValue) => {
+    const inputTokens = parseCommaList((rawValue || '').replace(/,+$/, ''));
+    if (inputTokens.length === 0) {
+      return;
+    }
+    const nextTokens = [...hobbyTokens];
+    inputTokens.forEach((token) => {
+      if (!nextTokens.includes(token)) {
+        nextTokens.push(token);
+      }
+    });
+    if (setHobbiesFromTokens(nextTokens)) {
+      setHobbyInput('');
+    }
+  };
+
+  const addStackTagToken = (rawValue) => {
+    const inputTokens = parseCommaList((rawValue || '').replace(/,+$/, ''));
+    if (inputTokens.length === 0) {
+      return;
+    }
+    const nextTokens = [...stackTagTokens];
+    inputTokens.forEach((token) => {
+      if (!nextTokens.includes(token)) {
+        nextTokens.push(token);
+      }
+    });
+    if (setStackTagsFromTokens(nextTokens)) {
+      setStackTagInput('');
+    }
+  };
+
+  const toggleStackTag = (tag) => {
+    const nextTokens = stackTagTokens.includes(tag)
+      ? stackTagTokens.filter((item) => item !== tag)
+      : [...stackTagTokens, tag];
+    setStackTagsFromTokens(nextTokens);
+  };
+
+  const handleStackTagInputKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      return;
+    }
+    if (event.key === ',') {
+      event.preventDefault();
+      addStackTagToken(stackTagInput);
+      return;
+    }
+    if (event.key === 'Backspace' && !stackTagInput && stackTagTokens.length > 0) {
+      event.preventDefault();
+      setStackTagsFromTokens(stackTagTokens.slice(0, -1));
+    }
+  };
+
+  const toggleHobby = (hobby) => {
+    const nextTokens = hobbyTokens.includes(hobby)
+      ? hobbyTokens.filter((item) => item !== hobby)
+      : [...hobbyTokens, hobby];
+    setHobbiesFromTokens(nextTokens);
+  };
+
+  const handleHobbyInputKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      return;
+    }
+    if (event.key === ',') {
+      event.preventDefault();
+      addHobbyToken(hobbyInput);
+      return;
+    }
+    if (event.key === 'Backspace' && !hobbyInput && hobbyTokens.length > 0) {
+      event.preventDefault();
+      setHobbiesFromTokens(hobbyTokens.slice(0, -1));
+    }
   };
 
   const handleAddPhoto = () => {
@@ -101,7 +218,7 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
     onSave({
       displayName: profile.displayName.trim() || user.displayName,
       bio: profile.bio.trim(),
-      stackTags: (profile.stackTags || '').split(',').map((tag) => tag.trim()).filter(Boolean),
+      stackTags: parseCommaList(profile.stackTags),
       experienceYears: normalizeExperienceYears(profile.experienceYears),
       hobbies: profile.hobbies.trim(),
       photoUrls: profile.photoUrls
@@ -187,21 +304,18 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
         </div>
 
         <div className="profile-card__field">
-          <label>技術スタック</label>
+          <label htmlFor="stackTagInput">技術スタック</label>
+          <p className="profile-card__hint">候補を選ぶか、入力して「追加」してください。</p>
           <div className="profile-card__tag-list">
             {popularTags.map((tag) => {
-              const selectedTags = (profile.stackTags || '')
-                .split(',')
-                .map((item) => item.trim())
-                .filter(Boolean);
-              const isActive = selectedTags.includes(tag);
+              const isActive = stackTagTokens.includes(tag);
               return (
                 <button
                   key={tag}
                   type="button"
                   className={`tag-chip ${isActive ? 'tag-chip--active' : ''}`}
                   aria-pressed={isActive}
-                  onClick={() => handleTagClick(tag)}
+                  onClick={() => toggleStackTag(tag)}
                 >
                   <span className="tag-chip__check" aria-hidden="true">✓</span>
                   {tag}
@@ -209,29 +323,96 @@ function ProfileEditor({ user, onSave, isInitialRegistration = false }) {
               );
             })}
           </div>
-          <textarea
-            id="stackTags"
-            name="stackTags"
-            value={profile.stackTags}
-            onChange={handleChange}
-            placeholder="カンマ区切りでタグを登録（例）Java, AWS"
-            maxLength={PROFILE_MAX_LENGTHS.stackTags}
-            rows={2}
-          />
+          <div className="profile-card__tag-list profile-card__tag-list--selected" aria-label="選択済みの技術スタック">
+            {stackTagTokens.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className="tag-chip tag-chip--active"
+                onClick={() => toggleStackTag(tag)}
+                aria-label={`${tag} を削除`}
+              >
+                <span className="tag-chip__check" aria-hidden="true">×</span>
+                {tag}
+              </button>
+            ))}
+          </div>
+          <div className="profile-card__token-input-row">
+            <input
+              id="stackTagInput"
+              name="stackTagInput"
+              value={stackTagInput}
+              onChange={(event) => setStackTagInput(event.target.value.slice(0, 30))}
+              onKeyDown={handleStackTagInputKeyDown}
+              placeholder="例: React"
+              maxLength={30}
+            />
+            <button
+              type="button"
+              className="profile-card__token-add-button"
+              onClick={() => addStackTagToken(stackTagInput)}
+              aria-label="技術スタックを追加"
+            >
+              追加
+            </button>
+          </div>
           {errors.stackTags && <div className="profile-card__error">{errors.stackTags}</div>}
         </div>
 
         <div className="profile-card__field">
-          <label htmlFor="hobbies">趣味</label>
-          <textarea
-            id="hobbies"
-            name="hobbies"
-            value={profile.hobbies}
-            onChange={handleChange}
-            placeholder="カンマ区切りでタグを登録(例) 散歩, PC,"
-            maxLength={PROFILE_MAX_LENGTHS.hobbies}
-            rows={2}
-          />
+          <label htmlFor="hobbyInput">趣味</label>
+          <p className="profile-card__hint">候補を選ぶか、入力して「追加」してください。</p>
+          <div className="profile-card__tag-list">
+            {popularHobbies.map((hobby) => {
+              const isActive = hobbyTokens.includes(hobby);
+              return (
+                <button
+                  key={hobby}
+                  type="button"
+                  className={`tag-chip ${isActive ? 'tag-chip--active' : ''}`}
+                  aria-pressed={isActive}
+                  onClick={() => toggleHobby(hobby)}
+                >
+                  <span className="tag-chip__check" aria-hidden="true">✓</span>
+                  {hobby}
+                </button>
+              );
+            })}
+          </div>
+          <div className="profile-card__tag-list profile-card__tag-list--selected" aria-label="選択済みの趣味">
+            {hobbyTokens.map((hobby) => (
+              <button
+                key={hobby}
+                type="button"
+                className="tag-chip tag-chip--active"
+                onClick={() => toggleHobby(hobby)}
+                aria-label={`${hobby} を削除`}
+              >
+                <span className="tag-chip__check" aria-hidden="true">×</span>
+                {hobby}
+              </button>
+            ))}
+          </div>
+          <div className="profile-card__token-input-row">
+            <input
+              id="hobbyInput"
+              name="hobbyInput"
+              value={hobbyInput}
+              onChange={(event) => setHobbyInput(event.target.value.slice(0, 40))}
+              onKeyDown={handleHobbyInputKeyDown}
+              placeholder="例: ランニング"
+              maxLength={40}
+            />
+            <button
+              type="button"
+              className="profile-card__token-add-button"
+              onClick={() => addHobbyToken(hobbyInput)}
+              aria-label="趣味を追加"
+            >
+              追加
+            </button>
+          </div>
+          {errors.hobbies && <div className="profile-card__error">{errors.hobbies}</div>}
         </div>
 
         <button type="submit" className="primary-button profile-card__save-button">
