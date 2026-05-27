@@ -1,5 +1,6 @@
 import React from 'react';
 import './NotificationList.css';
+import { getUserPrimaryImage } from '../utils/userImage';
 
 function NotificationList({ notifications, users, onClose, onMarkAsRead, onSelectNotification }) {
   const visibleNotifications = notifications.filter((notification) => !notification.read);
@@ -26,7 +27,7 @@ function NotificationList({ notifications, users, onClose, onMarkAsRead, onSelec
     if (!user) {
       return '/images/person.png';
     }
-    return user.avatar || '/images/person.png';
+    return getUserPrimaryImage(user);
   };
 
   const handleNotificationClick = (notification) => {

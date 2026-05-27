@@ -118,4 +118,31 @@ describe('NotificationList Component', () => {
     expect(avatar).toHaveAttribute('alt', '通知ユーザー');
     expect(screen.queryByText(/スーパーライク/)).not.toBeInTheDocument();
   });
+
+  test('prefers first profile photo for notification avatar', () => {
+    const usersWithPhotos = [
+      {
+        id: 'user-1',
+        githubUsername: 'testuser',
+        displayName: 'Test User'
+      },
+      {
+        id: 'user-2',
+        githubUsername: 'otheruser',
+        displayName: 'Other User',
+        photoUrls: ['https://example.com/profile-top.png'],
+        avatar: 'https://example.com/avatar-fallback.png'
+      }
+    ];
+
+    const { container } = render(
+      <NotificationList
+        {...mockProps}
+        users={usersWithPhotos}
+      />
+    );
+
+    const avatar = container.querySelector('img.notification-avatar');
+    expect(avatar).toHaveAttribute('src', 'https://example.com/profile-top.png');
+  });
 });

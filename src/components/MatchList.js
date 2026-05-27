@@ -75,7 +75,7 @@ function MatchList({ currentUser, users, onSelectProfile, onNope, onLike }) {
     <div className="likes-screen">
       <section className="likes-section">
         <h2 className="likes-section__title">あなたをいいねした人</h2>
-        <div className="likes-grid">
+        <div className="likes-grid likes-grid--incoming">
           {likedByUsers.length === 0 ? (
             <div className="likes-empty" role="status" aria-live="polite">
               <p className="likes-empty__title">まだいません</p>
@@ -84,7 +84,7 @@ function MatchList({ currentUser, users, onSelectProfile, onNope, onLike }) {
           ) : (
             likedByUsers.map((user) => {
               return (
-                <div key={`liked-by-${user.id}`} className="likes-item">
+                <div key={`liked-by-${user.id}`} className="likes-item likes-item--incoming">
                   <button
                     type="button"
                     className={`likes-thumb ${isSuperLikedByUser(user) ? 'likes-thumb--superlike' : ''}`}
@@ -157,7 +157,7 @@ function MatchList({ currentUser, users, onSelectProfile, onNope, onLike }) {
 
       <section className="likes-section">
         <h2 className="likes-section__title">あなたがいいねした人</h2>
-        <div className="likes-grid">
+        <div className="likes-grid likes-grid--outgoing">
           {likedByCurrentUser.length === 0 ? (
             <div className="likes-empty" role="status" aria-live="polite">
               <p className="likes-empty__title">まだいません</p>
@@ -165,7 +165,7 @@ function MatchList({ currentUser, users, onSelectProfile, onNope, onLike }) {
             </div>
           ) : (
             likedByCurrentUser.map((user) => (
-              <div key={`liked-by-me-${user.id}`} className="likes-item">
+              <div key={`liked-by-me-${user.id}`} className="likes-item likes-item--outgoing">
                 <button
                   type="button"
                   className="likes-thumb"

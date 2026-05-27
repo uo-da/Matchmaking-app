@@ -281,7 +281,7 @@ body {
 
 @media (max-width: 768px) {
   .app-shell--chat-detail {
-    padding: 16px 12px 0;
+    padding: 16px 12px calc(8px + env(safe-area-inset-bottom));
   }
 }
 
@@ -444,6 +444,11 @@ body {
   margin: 18px 0 14px;
 }
 
+.deck-card__tags--single-line {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
 .deck-card__tag {
   background: rgba(248, 113, 113, 0.12);
   color: #991b1b;
@@ -451,6 +456,10 @@ body {
   border-radius: 9999px;
   font-size: 0.88rem;
   border: 1px solid rgba(248, 113, 113, 0.16);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .deck-card__bio {
@@ -1061,7 +1070,8 @@ button.superlike {
 }
 
 .likes-thumb--superlike {
-  border: 3px solid #f97316;
+  border: none;
+  outline: 3px solid #f97316;
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3);
 }
 
@@ -1145,6 +1155,13 @@ button.superlike {
   border-radius: 14px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   text-align: center;
+}
+
+.likes-grid--incoming .likes-empty,
+.likes-grid--outgoing .likes-empty {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: none;
 }
 
 .likes-empty__title {
@@ -1829,7 +1846,7 @@ button.superlike {
   .chat-room {
     width: 100%;
     min-width: 0;
-    height: 100dvh;
+    height: 100%;
     min-height: 0;
     border-radius: 0;
     border-left: none;
@@ -1889,7 +1906,7 @@ button.superlike {
   }
 
   .chat-room__composer {
-    padding: 10px 12px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
   }
 
   .chat-room__input {
@@ -3171,12 +3188,13 @@ button.small-button.active-tag {
 }
 
 .app-shell--users .deck-card__info {
-  padding: 14px 18px 12px;
+  padding: 14px 18px 14px;
   border-top: 1px solid #d8d8d8;
   min-height: var(--vendor-card-info-height);
   display: grid;
-  grid-template-rows: auto 2.9em minmax(32px, auto) 26px;
+  grid-template-rows: auto auto minmax(32px, auto) 30px;
   align-content: start;
+  row-gap: 2px;
 }
 
 .app-shell--users .deck-card__meta {
@@ -3205,43 +3223,82 @@ button.small-button.active-tag {
   color: #222222;
   font-size: 1rem;
   line-height: 1.45;
-  min-height: 2.9em;
+  min-height: 1.45em;
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
   word-break: break-word;
 }
 
 .app-shell--users .deck-card__footer-row {
+  margin-top: 3px;
+}
+
+.app-shell--users .deck-card__tag-lanes {
+  display: grid;
+  gap: 6px;
+}
+
+.app-shell--users .deck-card__tag-lane {
   display: block;
+  min-height: 30px;
 }
 
 .app-shell--users .deck-card__tags {
-  margin: 12px 0 0;
-  gap: 10px;
+  margin: 0;
+  gap: 8px;
   min-width: 0;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-  min-height: 32px;
   align-items: center;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  min-height: 28px;
 }
 
-.app-shell--users .deck-card__tags::-webkit-scrollbar {
-  display: none;
+.app-shell--users .deck-card__tags--single-line {
+  overflow: hidden;
+}
+
+.app-shell--users .deck-card__tags--status {
+  overflow: visible;
+  margin-bottom: 4px;
 }
 
 .app-shell--users .deck-card__tag {
   border: 1px solid #c8c8c8;
   background: #ededed;
   color: #1d1d1d;
-  padding: 6px 14px;
-  font-size: 0.96rem;
+  padding: 4px 10px;
+  font-size: 0.86rem;
   white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-shell--users .deck-card__tags--single-line .deck-card__tag {
+  flex: 0 1 auto;
+  max-width: 138px;
+}
+
+.app-shell--users .deck-card__tag--hobby {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.app-shell--users .deck-card__tag--incoming {
+  background: #dbeafe;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  flex: 0 0 auto;
+}
+
+.app-shell--users .deck-card__tag--count {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
   flex: 0 0 auto;
 }
 
@@ -3260,7 +3317,7 @@ button.small-button.active-tag {
 }
 
 .app-shell--users .deck-card__badge-slot {
-  min-height: 26px;
+  display: none;
 }
 
 .app-shell--users .deck-card__actions {
@@ -3405,6 +3462,26 @@ button.small-button.active-tag {
     justify-content: center;
   }
 
+  .likes-grid--incoming,
+  .likes-grid--outgoing {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .likes-grid--incoming .likes-item,
+  .likes-grid--outgoing .likes-item {
+    width: 100%;
+  }
+
+  .likes-grid--incoming .likes-item__actions .deck-action-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 0.95rem;
+  }
+
   .likes-section {
     border-radius: 16px;
     padding: 14px 12px;
@@ -3445,22 +3522,30 @@ button.small-button.active-tag {
   }
 
   .app-shell--users .deck-card__footer-row {
+    margin-top: 4px;
+  }
+
+  .app-shell--users .deck-card__tag-lanes {
+    gap: 4px;
+  }
+
+  .app-shell--users .deck-card__tag-lane {
     display: block;
+    min-height: 28px;
   }
 
   .app-shell--users .deck-card__tags {
-    flex-wrap: wrap;
-    overflow-x: visible;
-    overflow-y: visible;
-    min-height: 0;
-    margin: 10px 0 0;
-    gap: 8px;
-    padding-right: 2px;
+    margin: 0;
+    gap: 6px;
+    min-height: 24px;
   }
 
-  .app-shell--users .deck-card__tag {
-    font-size: 0.9rem;
-    padding: 5px 10px;
+  .app-shell--users .deck-card__tags--status {
+    margin-bottom: 0;
+  }
+
+  .app-shell--users .deck-card__tags--single-line .deck-card__tag {
+    max-width: 104px;
   }
 
   .app-shell--users .deck-card__profile-btn {
@@ -3480,13 +3565,13 @@ button.small-button.active-tag {
 
   .app-shell--users .deck-card__detail {
     font-size: 1rem;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
   }
 
   .app-shell--users .deck-card__tag {
-    padding: 5px 10px;
-    font-size: 0.9rem;
+    padding: 4px 9px;
+    font-size: 0.82rem;
   }
 
   .app-shell--users .deck-card__actions {

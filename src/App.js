@@ -15,7 +15,7 @@ import authService from './services/authService';
 import storageService from './services/storageService';
 import chatService from './services/chatService';
 import { filterUsersByCriteria } from './utils/matchUtils';
-import { prefetchUserImages } from './utils/userImage';
+import { getUserImageCandidates, loadNextImageCandidate, prefetchUserImages } from './utils/userImage';
 
 const VIEW_STATE_KEY = 'matchmaking_view_state';
 
@@ -1075,16 +1075,22 @@ function App() {
             <div className="match-modal__photos">
               <img
                 className="match-modal__photo"
-                src={`https://github.com/${currentUser.githubUsername}.png?size=200`}
+                src={getUserImageCandidates(currentUser, 200)[0]}
                 alt={currentUser.displayName}
-                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/200'; }}
+                data-candidate-index="0"
+                onError={(event) => {
+                  loadNextImageCandidate(event, getUserImageCandidates(currentUser, 200));
+                }}
               />
               <div className="match-modal__divider" />
               <img
                 className="match-modal__photo"
-                src={`https://github.com/${matchModal.githubUsername}.png?size=200`}
+                src={getUserImageCandidates(matchModal, 200)[0]}
                 alt={matchModal.displayName}
-                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/200'; }}
+                data-candidate-index="0"
+                onError={(event) => {
+                  loadNextImageCandidate(event, getUserImageCandidates(matchModal, 200));
+                }}
               />
             </div>
             <p className="match-modal__subtitle">{matchModal.displayName} さんとマッチングしました！</p>

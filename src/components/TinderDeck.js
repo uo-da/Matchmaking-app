@@ -17,6 +17,41 @@ const normalizeStackTags = (tags) => {
   return [...new Set(normalized)];
 };
 
+const parseHobbyTags = (hobbies) => {
+  if (Array.isArray(hobbies)) {
+    return hobbies;
+  }
+  if (typeof hobbies !== 'string') {
+    return [];
+  }
+  return hobbies
+    .split(/[,\n、]/)
+    .map((hobby) => hobby.trim())
+    .filter(Boolean);
+};
+
+const buildTagPreview = (tags, maxVisible = 3) => {
+  const source = Array.isArray(tags) ? tags : [];
+  const seen = new Set();
+  const normalized = source
+    .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+    .filter((tag) => {
+      if (!tag) {
+        return false;
+      }
+      const key = tag.toLowerCase();
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  return {
+    visible: normalized.slice(0, maxVisible),
+    hiddenCount: Math.max(normalized.length - maxVisible, 0)
+  };
+};
+
 const getTagMatchInfo = (sourceTags, targetTags) => {
   const source = normalizeStackTags(sourceTags);
   const target = normalizeStackTags(targetTags);
@@ -426,6 +461,8 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
       ? 'deck-card__label deck-card__label--like'
       : 'deck-card__label deck-card__label--nope';
   const sharedTagPreview = recommendedModal?.sharedTags?.slice(0, 4) || [];
+  const stackTagPreview = buildTagPreview(currentUserCard?.stackTags);
+  const hobbyTagPreview = buildTagPreview(parseHobbyTags(currentUserCard?.hobbies));
 
   return (
     <div className="deck-shell deck-shell--vendor">
@@ -518,14 +555,35 @@ function TinderDeck({ currentUser, users, onLike, onNope, onSuperLikeLimit }) {
                   )}
                 </p>
                 <div className="deck-card__footer-row">
-                  <div className="deck-card__tags">
-                    {currentUserCard.stackTags.slice(0, 3).map((tag) => (
-                      <span key={tag} className="deck-card__tag">{tag}</span>
-                    ))}
+                  <div className="deck-card__tag-lanes">
+                    <div className="deck-card__tag-lane">
+                      <div className="deck-card__tags deck-card__tags--single-line">
+                        {stackTagPreview.visible.map((tag) => (
+                          <span key={`stack-${tag}`} className="deck-card__tag">{tag}</span>
+                        ))}
+                        {stackTagPreview.hiddenCount > 0 && (
+                          <span className="deck-card__tag deck-card__tag--count">+{stackTagPreview.hiddenCount}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="deck-card__tag-lane">
+                      <div className="deck-card__tags deck-card__tags--single-line">
+                        {hobbyTagPreview.visible.map((tag) => (
+                          <span key={`hobby-${tag}`} className="deck-card__tag deck-card__tag--hobby">{tag}</span>
+                        ))}
+                        {hobbyTagPreview.hiddenCount > 0 && (
+                          <span className="deck-card__tag deck-card__tag--count">+{hobbyTagPreview.hiddenCount}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="deck-card__tag-lane">
+                      <div className="deck-card__tags deck-card__tags--status">
+                        {currentCardLikedYou && (
+                          <span className="deck-card__tag deck-card__tag--incoming">あなたにいいね</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="deck-card__badge-slot">
-                  {currentCardLikedYou && <div className="deck-card__badge">あなたにいいね</div>}
                 </div>
               </div>
             </div>
